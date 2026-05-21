@@ -860,15 +860,19 @@ function BM({user}){
 function ResetPassword({users,onUpdate}){
   const [selUser,setSU]=useState("");
   const [np,snp]=useState(""); const [np2,snp2]=useState(""); const [err,se]=useState("");
-  const go=async()=>{
-    if(!selUser){se("សូមជ្រើស User!");return;}
-    if(np.length<8){se("ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 8 តួអក្សរ!");return;}
-    if(np!==np2){se("ពាក្យសម្ងាត់មិនដូចគ្នា!");return;}
-    se("");
-    const hash=await hashPassword(np);
-    const upd=users.map(x=>x.id===parseInt(selUser)?{...x,passwordHash:hash}:x);
-    onUpdate(upd); setSU(""); snp(""); snp2("");
-  };
+  // ក្នុង ResetPassword Component
+const go = async () => {
+  // ... validation ...
+  const hash = await hashPassword(np);
+  const upd = users.map(x => x.id === parseInt(selUser) ? { ...x, passwordHash: hash } : x);
+  try {
+    saveUsersWithSingleAdmin(upd);  // ← ប្រើនេះជំនួស onUpdate(upd) ផ្ទាល់
+    onUpdate(upd); // បើចង់ update state ក្នុង Admin
+    setSU(""); snp(""); snp2("");
+  } catch (err) {
+    se(err.message);
+  }
+};
   return(
     <GC icon="🔑" title="ប្ដូរ Password User" sub="Reset Password · SHA-256" accent="#fbbf24">
       <div style={{background:"rgba(251,146,60,.08)",border:"1px solid rgba(251,146,60,.2)",borderRadius:10,padding:"10px 13px",fontSize:11,color:"#fb923c",lineHeight:1.7}}>
@@ -901,19 +905,40 @@ function Admin({onBgChange}){
   const [c1,sc1]=useState(stored.a||"#06080f");
   const [c2,sc2]=useState(stored.b||"#0c1428");
 
-  const addU=async()=>{
-    if(!nu.username||!nu.password||!nu.display)return;
-    const hash=await hashPassword(nu.password);
-    const newUser={id:Date.now(),username:nu.username,passwordHash:hash,role:nu.role,display:nu.display,team:""};
-    const upd=[...users,newUser];
-    su(upd); LS.saveUsers(upd);
-    snu({username:"",password:"",role:"supervisor_teller",display:""});
+// ក្នុង Admin Component
+const addU = async () => {
+  if (!nu.username || !nu.password || !nu.display) return;
+  const hash = await hashPassword(nu.password);
+  const newUser = {
+    id: Date.now(),
+    username: nu.username,
+    passwordHash: hash,
+    role: nu.role,
+    display: nu.display,
+    team: ""
+  };
+  const upd = [...users, newUser];
+  su(upd);
+  try {
+    saveUsersWithSingleAdmin(upd);  // ← ប្តូរមកប្រើនេះ
+    snu({ username: "", password: "", role: "supervisor_teller", display: "" });
     stt("User បានបង្កើតដោយជោគជ័យ! Password ត្រូវបាន Hash រួចរាល់ ✅");
-  };
-  const delU=(id)=>{
-    if(!window.confirm("លុប User នេះ?"))return;
-    const upd=users.filter(x=>x.id!==id); su(upd); LS.saveUsers(upd); stt("User បានលុប!");
-  };
+  } catch (err) {
+    stt(err.message);
+  }
+};
+
+const delU = (id) => {
+  if (!window.confirm("លុប User នេះ?")) return;
+  const upd = users.filter(x => x.id !== id);
+  su(upd);
+  try {
+    saveUsersWithSingleAdmin(upd);
+    stt("User បានលុប!");
+  } catch (err) {
+    stt(err.message);
+  }
+};
   const applyPreset=(p)=>{
     setSel(p.id); sc1(p.a); sc2(p.b);
     LS.saveBg(p); onBgChange(p); stt(`Theme "${p.label}" បានអនុវត្ត!`);
@@ -1088,7 +1113,11 @@ function SetupWizard({ onDone }) {
 export default function App(){
   const [user,su]=useState(null);
   const [bg,sbg]=useState(LS.getBg);
-  const [needSetup,sns]=useState(()=>LS.getUsers().length===0);
+  // ផ្លាស់ប្តូរពីពិនិត្យថាមាន User ទាំងអស់ -> ពិនិត្យថាមាន Admin ឬអត់
+  const [needSetup, setNeedSetup] = useState(() => {
+    const users = LS.getUsers();
+    return !users.some(u => u.role === "admin"); // true បើគ្មាន Admin
+  });
 
   const view=()=>{
     if(!user)return null;
@@ -1111,7 +1140,7 @@ export default function App(){
     <style>{mkCss(bg)}</style>
     <div className="app">
       {needSetup
-        ? <SetupWizard onDone={()=>sns(false)}/>
+        ? <SetupWizard onDone={() => setNeedSetup(false)}/>
         : !user
           ? <Login onLogin={su}/>
           : <><Header user={user} onLogout={()=>su(null)}/>{view()}</>
