@@ -992,21 +992,71 @@ function Admin({onBgChange}){
     </div></>);
 }
 
-// ─── SETUP WIZARD ────────────────────────────────────────────────────────────
-function SetupWizard({onDone}){
-  const [u,su]=useState(""); const [p,sp]=useState(""); const [p2,sp2]=useState("");
-  const [name,sn]=useState(""); const [err,se]=useState(""); const [loading,sl]=useState(false);
-  const go=async()=>{
-    if(!u||!p||!name){se("សូមបំពេញគ្រប់ field!");return;}
-    if(p!==p2){se("ពាក្យសម្ងាត់មិនដូចគ្នា!");return;}
-    if(p.length<8){se("ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 8 តួអក្សរ!");return;}
+// ─── HELPER: Single Admin Enforcer ───────────────────────────────────────────
+// ត្រូវប្រើជំនួស LS.saveUsers() គ្រប់កន្លែងដើម្បីការពារ Multiple Admins
+function saveUsersWithSingleAdmin(usersArray) {
+  const adminCount = usersArray.filter(u => u.role === "admin").length;
+  if (adminCount > 1) {
+    throw new Error("❌ មិនអាចមាន Admin ច្រើនជាង ១នាក់ទេ!");
+  }
+  LS.saveUsers(usersArray);
+}
+
+// ─── SETUP WIZARD (កែប្រែ) ─────────────────────────────────────────────────
+function SetupWizard({ onDone }) {
+  const [u, su] = useState("");
+  const [p, sp] = useState("");
+  const [p2, sp2] = useState("");
+  const [name, sn] = useState("");
+  const [err, se] = useState("");
+  const [loading, sl] = useState(false);
+
+  const go = async () => {
+    // 1. ពិនិត្យមើលថាតើមាន Admin រួចហើយឬនៅ?
+    const existingUsers = LS.getUsers() || [];
+    const existingAdmin = existingUsers.find(u => u.role === "admin");
+    if (existingAdmin) {
+      se("⚠️ Admin មានរួចហើយ! មិនអាចបង្កើតបានទៀតទេ។");
+      return;
+    }
+
+    // 2. Validation ធម្មតា
+    if (!u || !p || !name) {
+      se("សូមបំពេញគ្រប់ field!");
+      return;
+    }
+    if (p !== p2) {
+      se("ពាក្យសម្ងាត់មិនដូចគ្នា!");
+      return;
+    }
+    if (p.length < 8) {
+      se("ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 8 តួអក្សរ!");
+      return;
+    }
+
     sl(true);
-    const hash=await hashPassword(p);
-    const admin={id:1,username:u,passwordHash:hash,role:"admin",display:name,team:""};
-    LS.saveUsers([admin]);
-    sl(false); onDone();
+    const hash = await hashPassword(p);
+    const admin = {
+      id: 1,
+      username: u,
+      passwordHash: hash,
+      role: "admin",
+      display: name,
+      team: ""
+    };
+
+    // 3. រក្សាទុកដោយប្រើ saveUsersWithSingleAdmin() ជំនួស LS.saveUsers()
+    try {
+      saveUsersWithSingleAdmin([admin]);  // តែមួយគត់
+      sl(false);
+      onDone();
+    } catch (err) {
+      se(err.message);
+      sl(false);
+    }
   };
-  return(
+
+  return (
     <div className="lw">
       <div className="logo-shell">
         <div className="logo-ring">⚙️</div>
@@ -1018,21 +1068,22 @@ function SetupWizard({onDone}){
       </div>
       <div className="lc">
         <div className="lc-title">បង្កើត Admin Account</div>
-        <div style={{background:"rgba(251,146,60,.08)",border:"1px solid rgba(251,146,60,.2)",borderRadius:10,padding:"10px 13px",fontSize:11,color:"#fb923c",lineHeight:1.7}}>
+        <div style={{ background: "rgba(251,146,60,.08)", border: "1px solid rgba(251,146,60,.2)", borderRadius: 10, padding: "10px 13px", fontSize: 11, color: "#fb923c", lineHeight: 1.7 }}>
           🔐 ពាក្យសម្ងាត់នឹងត្រូវបាន <b>Hash SHA-256</b> មុននឹងរក្សាទុក។ គ្មាននរណាម្នាក់ឃើញ plaintext ទេ — រួមទាំង developer។
         </div>
-        <F label="ឈ្មោះបង្ហាញ (Display Name)" ph="ឧ. Heng Kimhong" val={name} set={sn} icon="👤"/>
-        <F label="Username" ph="admin username" val={u} set={su} icon="🪪"/>
-        <F label="ពាក្យសម្ងាត់" ph="យ៉ាងតិច 8 តួអក្សរ" val={p} set={sp} icon="🔒" type="password"/>
-        <F label="បញ្ជាក់ពាក្យសម្ងាត់" ph="Type again..." val={p2} set={sp2} icon="🔒" type="password"/>
-        {err&&<div className="ebox">{err}</div>}
-        <button className="btn btn-pri" onClick={go} disabled={loading}>{loading?"កំពុងដំណើរការ...":"✅ បង្កើត Admin Account"}</button>
-        <div className="note">បន្ទាប់ពីដំឡើងរួច Admin អាចបង្កើត User ផ្សេងទៀតបាន</div>
+        <F label="ឈ្មោះបង្ហាញ (Display Name)" ph="ឧ. Heng Kimhong" val={name} set={sn} icon="👤" />
+        <F label="Username" ph="admin username" val={u} set={su} icon="🪪" />
+        <F label="ពាក្យសម្ងាត់" ph="យ៉ាងតិច 8 តួអក្សរ" val={p} set={sp} icon="🔒" type="password" />
+        <F label="បញ្ជាក់ពាក្យសម្ងាត់" ph="Type again..." val={p2} set={sp2} icon="🔒" type="password" />
+        {err && <div className="ebox">{err}</div>}
+        <button className="btn btn-pri" onClick={go} disabled={loading}>
+          {loading ? "កំពុងដំណើរការ..." : "✅ បង្កើត Admin Account"}
+        </button>
+        <div className="note">បន្ទាប់ពីដំឡើងរួច Admin អាចបង្កើត User ផ្សេងទៀតបាន (តែមិនមែន Admin ទេ)</div>
       </div>
     </div>
   );
 }
-
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App(){
   const [user,su]=useState(null);
