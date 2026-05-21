@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
-const TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN";
-const TELEGRAM_ADMIN_CHAT_ID = "YOUR_ADMIN_CHAT_ID";
+const TELEGRAM_BOT_TOKEN = "8885325172:AAHc5rbTHpv_6CulbSdF-VbreQJeV_7X_lE";
+const TELEGRAM_ADMIN_CHAT_ID = "8664644666";
 
 // ─── USERS ────────────────────────────────────────────────────────────────────
 // ─── SECURITY: No credentials stored in code ─────────────────────────────────
