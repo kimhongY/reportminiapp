@@ -5,7 +5,7 @@ const TELEGRAM_ADMIN_CHAT_ID = "8664644666";
 
 // ─── USERS ────────────────────────────────────────────────────────────────────
 // ─── SECURITY: No credentials stored in code ─────────────────────────────────
-// All users are created by admin through the UI only.
+// Admin users are created by admin through the UI only.
 // Passwords are hashed with SHA-256 before storage — never stored as plaintext.
 // On first launch, admin must set up the first account via the setup wizard.
 
