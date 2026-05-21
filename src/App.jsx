@@ -7,8 +7,8 @@ import {
   onUsersChange, onReportsChange, onActivitiesChange
 } from "./db";
 
-const TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN";
-const TELEGRAM_ADMIN_CHAT_ID = "YOUR_ADMIN_CHAT_ID";
+const TELEGRAM_BOT_TOKEN = "8885325172:AAHc5rbTHpv_6CulbSdF-VbreQJeV_7X_lE";
+const TELEGRAM_ADMIN_CHAT_ID = "8664644666";
 
 const hashPassword = async (pw) => {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pw));
