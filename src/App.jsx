@@ -287,7 +287,7 @@ function AnalyticsPage({user}){
 
         {/* Donut by report type */}
         <DonutChart
-          title="ចំហែក Reports ខែ ${MONTHS_KH[mon]}'}
+          title={'ចំហែក Reports ខែ ${MONTHS_KH[mon]}'}
           data={[/
             {name: "Teller",
  value: rpts.filter(r => r.type === "Teller" && new Date(r.ts).getMonth() === mon).length,
