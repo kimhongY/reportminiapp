@@ -301,8 +301,13 @@ function AnalyticsPage({user}){
           ].filter(d=>d.value>0)}
         //>
         {/* Daily activity */}
-        {dailyData.length>0&&<BarChartComp title={`📅 Reports ប្រចាំថ្ងៃ — ${MONTHS_KH[mon]}`} data={dailyData} keys={["Total"]} colors={["#3b82f6"]}/>}
-      </>}
+        {dailyData.length > 0 && (
+  <BarChartComp
+    title={`📅 Reports ប្រចាំថ្ងៃ — ${MONTHS_KH[mon]}`}
+    data={dailyData}
+    keys={["Total", "Approved", "Rejected"]} // replace with actual keys
+  />
+)}
 
       {tab==="trend"&&<>
         <BarChartComp
