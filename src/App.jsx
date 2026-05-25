@@ -291,9 +291,7 @@ function AnalyticsPage({user}){
         data={[
           { name: "Teller",
       value: rpts.filter(r => r.type === "Teller" && new Date(r.ts).getMonth() === mon).length },
-    // ...other items...
-  ]}
-/>
+    // ...other items..
             {name: "CSA",
              value: rpts.filter(r => (r.type === "CSA" || r.type === "CSA_Officer") && new Date(r.ts).getMonth() === mon).length,
              color: "#34d399"},
