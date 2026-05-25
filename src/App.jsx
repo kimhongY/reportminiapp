@@ -302,13 +302,12 @@ function AnalyticsPage({user}){
         }//
           {/* Daily activity */}
         {dailyData.length > 0 && (
-  <BarChartComp
-        /* ...props... */
-    title={`📅 Reports ប្រចាំថ្ងៃ — ${MONTHS_KH[mon]}`}
-    data={dailyData}
-    keys={["Total", "Approved", "Rejected"]}
-  />
-)}
+         <BarChartComp
+         title={`📅 Reports ប្រចាំថ្ងៃ — ${MONTHS_KH[mon]}`}
+         data={dailyData}
+         keys={["Total","Approved","Rejected"]}
+       />
+      )}
       </>
 
         {tab==="trend"&&<>
