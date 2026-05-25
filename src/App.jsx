@@ -299,6 +299,7 @@ function AnalyticsPage({user}){
               value: rpts.filter(r => (r.type === "Loan" || r.type === "Loan_Officer") && new Date(r.ts).getMonth() === mon).length,
               color: "#f97316"},
           ].filter(d => d.value > 0)
+      </>
           {/* Daily activity */}
         {dailyData.length > 0 && (
   <BarChartComp
@@ -307,7 +308,9 @@ function AnalyticsPage({user}){
     keys={["Total", "Approved", "Rejected"]}
   />
 )}
-      {tab==="trend"&&<>
+      </>
+
+        {tab==="trend"&&<>
         <BarChartComp
           title="📈 Reports ប្រចាំខែ (6 ខែចុងក្រោយ)"
           data={monthlyTrend} keys={["Teller","CSA","Loan"]}
