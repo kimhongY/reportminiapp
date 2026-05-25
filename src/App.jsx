@@ -287,29 +287,25 @@ function AnalyticsPage({user}){
 
         {/* Donut by report type */}
         <DonutChart
-        title={`ចំហែក Reports ខែ ${MONTHS_KH[mon]}`}
-        data={[
-          { name: "Teller",
-      value: rpts.filter(r => r.type === "Teller" && new Date(r.ts).getMonth() === mon).length },
-      // ...
-            {name: "CSA",
-             value: rpts.filter(r => (r.type === "CSA" || r.type === "CSA_Officer") && new Date(r.ts).getMonth() === mon).length,
-             color: "#34d399"},
-             {name: "Loan",
-              value: rpts.filter(r => (r.type === "Loan" || r.type === "Loan_Officer") && new Date(r.ts).getMonth() === mon).length,
-              color: "#f97316"},
+          title={`ចំហែក Reports ខែ ${MONTHS_KH[mon]}`}
+          data={[
+            { name: "Teller", value: rpts.filter(r => r.type === "Teller" && new Date(r.ts).getMonth() === mon).length, color: "#60a5fa" },
+            { name: "CSA", value: rpts.filter(r => (r.type === "CSA" || r.type === "CSA_Officer") && new Date(r.ts).getMonth() === mon).length, color: "#34d399" },
+            { name: "Loan", value: rpts.filter(r => (r.type === "Loan" || r.type === "Loan_Officer") && new Date(r.ts).getMonth() === mon).length, color: "#f97316" },
           ].filter(d => d.value > 0)}
-      ​​​​{/* Daily activity */}
-        {dailyData.length > 0 && (
-         <BarChartComp
-         title={`📅 Reports ប្រចាំថ្ងៃ — ${MONTHS_KH[mon]}`}
-         data={dailyData}
-         keys={["Total","Approved","Rejected"]}
-       />
-      )}
-      </>
+        />
 
-        {tab==="trend"&&<>
+        {/* Daily activity */}
+        {dailyData.length > 0 && (
+          <BarChartComp
+            title={`📅 Reports ប្រចាំថ្ងៃ — ${MONTHS_KH[mon]}`}
+            data={dailyData}
+            keys={["Total","Approved","Rejected"]}
+          />
+        )}
+      </>}
+
+      {tab==="trend"&&<>
         <BarChartComp
           title="📈 Reports ប្រចាំខែ (6 ខែចុងក្រោយ)"
           data={monthlyTrend} keys={["Teller","CSA","Loan"]}
@@ -428,7 +424,7 @@ function StaffPage({user}){
     const next=cur==="present"?"absent":cur==="absent"?"leave":cur==="leave"?null:"present";
     const id=`${uid}_${yr}_${mon+1}_${day}`;
     const date=`${yr}-${String(mon+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    if(!next){ const existing=att.find(a=>a.userId===uid&&a.date===date); if(existing){} return; }
+    if(!next){ return; }
     await saveAttendance({id,userId:uid,userName:uname,date,status:next});
     const a=await getAttendance(); sat(a);
   };
@@ -624,7 +620,7 @@ function ActivitiesPage({user}){
       <div className="tabs">
         {[
           ["list","📋 ផែនការ"],
-          ...(canEdit?[["create","➕ បង្កើត"]]:canJoin?[]:  []),
+          ...(canEdit?[["create","➕ បង្កើត"]]:[]),
           ["analytics","📊 Analysis"],
         ].map(([k,l])=>(
           <button key={k} className={`tab ${tab===k?"on":""}`} onClick={()=>stab(k)}>{l}</button>
