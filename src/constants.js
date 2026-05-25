@@ -1,6 +1,6 @@
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
-export const TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN";
-export const TELEGRAM_ADMIN_CHAT_ID = "YOUR_ADMIN_CHAT_ID";
+export const TELEGRAM_BOT_TOKEN = "8885325172:AAHc5rbTHpv_6CulbSdF-VbreQJeV_7X_lE";
+export const TELEGRAM_ADMIN_CHAT_ID = "8664644666";
 
 export const sendTelegram = async (msg) => {
   try {
