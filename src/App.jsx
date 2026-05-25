@@ -291,20 +291,20 @@ function AnalyticsPage({user}){
         data={[
           { name: "Teller",
       value: rpts.filter(r => r.type === "Teller" && new Date(r.ts).getMonth() === mon).length },
-    // ...other items..
+      // ...
             {name: "CSA",
              value: rpts.filter(r => (r.type === "CSA" || r.type === "CSA_Officer") && new Date(r.ts).getMonth() === mon).length,
              color: "#34d399"},
              {name: "Loan",
               value: rpts.filter(r => (r.type === "Loan" || r.type === "Loan_Officer") && new Date(r.ts).getMonth() === mon).length,
               color: "#f97316"},
-          ].filter(d=>d.value>0)}
+          ].filter(d => d.value > 0)}
         {/* Daily activity */}
         {dailyData.length > 0 && (
   <BarChartComp
     title={`📅 Reports ប្រចាំថ្ងៃ — ${MONTHS_KH[mon]}`}
     data={dailyData}
-    keys={["Total", "Approved", "Rejected"]} // replace with actual keys
+    keys={["Total", "Approved", "Rejected"]}
   />
 )}
 
