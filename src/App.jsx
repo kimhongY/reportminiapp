@@ -300,10 +300,10 @@ function AnalyticsPage({user}){
               color: "#f97316"},
           ].filter(d => d.value > 0)
         }//
-          
           {/* Daily activity */}
         {dailyData.length > 0 && (
   <BarChartComp
+        /* ...props... */
     title={`📅 Reports ប្រចាំថ្ងៃ — ${MONTHS_KH[mon]}`}
     data={dailyData}
     keys={["Total", "Approved", "Rejected"]}
