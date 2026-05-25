@@ -299,7 +299,6 @@ function AnalyticsPage({user}){
               value: rpts.filter(r => (r.type === "Loan" || r.type === "Loan_Officer") && new Date(r.ts).getMonth() === mon).length,
               color: "#f97316"},
           ].filter(d => d.value > 0)
-        }
           {/* Daily activity */}
         {dailyData.length > 0 && (
   <BarChartComp
