@@ -287,8 +287,8 @@ function AnalyticsPage({user}){
 
         {/* Donut by report type */}
         <DonutChart
-          title="ចំហែក Reports ខែ ${MONTHS_KH[mon]}'}
-          data={[/
+          title={`ចំហែក Reports ខែ ${MONTHS_KH[mon]}`}
+          data={[
             {name:"Teller",value:rpts.filter(r=>r.type==="Teller"&&new Date(r.ts).getMonth()===mon).length,color:"#60a5fa"},
             {name:"CSA",value:rpts.filter(r=>(r.type==="CSA"||r.type==="CSA_Officer")&&new Date(r.ts).getMonth()===mon).length,color:"#34d399"},
             {name:"Loan",value:rpts.filter(r=>(r.type==="Loan"||r.type==="Loan_Officer")&&new Date(r.ts).getMonth()===mon).length,color:"#a78bfa"},
