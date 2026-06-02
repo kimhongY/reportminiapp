@@ -199,19 +199,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans Khmer','Segoe UI',s
 .bar-fill{height:100%;border-radius:20px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
 .tgt-bot{display:flex;justify-content:space-between;font-size:10px;color:var(--t3)}
 
-/* ─── ACTIVITY CARD (new style) ─── */
+/* ─── ACTIVITY CARD (no image, clean) ─── */
 .act-card{background:var(--w);border:1px solid var(--bd);border-radius:var(--r);margin:0 18px;box-shadow:var(--sh);overflow:hidden}
 .act-card+.act-card{margin-top:10px}
-.act-img{height:130px;width:100%;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.act-img-inner{width:100%;height:100%;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:56px}
-.act-type-badge{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;backdrop-filter:blur(12px)}
-.act-type-badge.booth{background:rgba(124,58,237,.85);color:#fff}
-.act-type-badge.roadshow{background:rgba(234,88,12,.85);color:#fff}
-.act-date-badge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:600;padding:4px 10px;background:rgba(255,255,255,.9);border-radius:20px;color:var(--t0)}
 .act-body2{padding:14px 15px;display:flex;flex-direction:column;gap:9px}
 .act-title2{font-size:15px;font-weight:800;color:var(--t0);letter-spacing:-.02em}
 .act-loc{font-size:11px;color:var(--t2);display:flex;align-items:center;gap:4px}
-.act-members2{display:flex;flex-wrap:wrap;gap:5px}
+.act-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.act-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--pm);color:var(--p)}
+.act-date-badge{font-size:10px;font-weight:600;padding:3px 10px;background:var(--g2);border-radius:20px;color:var(--t2)}
+.act-members2{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
 .act-member2{font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid}
 .act-member2.approved{background:#f0fdf4;border-color:#86efac;color:#16a34a}
 .act-member2.pending{background:#fffbeb;border-color:#fcd34d;color:#d97706}
@@ -627,7 +624,6 @@ function BNav({pages,active,set}){
 }
 
 // ─── HOME PAGE ────────────────────────────────────────────────────────────────
-// Logic: loan team → activities only | csa/khqr → activities + data | others → full
 function HomePage({user,targets}){
   const [acts,sa]=useState([]); const [rpts,sr]=useState([]);
   const [loading,sl]=useState(true);
@@ -646,7 +642,6 @@ function HomePage({user,targets}){
   const todayRpts=rpts.filter(r=>new Date(r.ts).toDateString()===todayStr);
   const monRpts=rpts.filter(r=>new Date(r.ts).getMonth()===mon);
 
-  // Team loan: show only activities
   if(team==="loan") return(
     <div className="sb">
       <div className="welcome">
@@ -662,7 +657,6 @@ function HomePage({user,targets}){
     </div>
   );
 
-  // CSA / KHQR: show activities + their data
   if(team==="csa"||team==="khqr"){
     const myTypes=team==="csa"?["CSA","CSA_Officer"]:["MA_KHQR","MS_KHQR"];
     const myRpts=rpts.filter(r=>myTypes.includes(r.type));
@@ -696,7 +690,6 @@ function HomePage({user,targets}){
     );
   }
 
-  // Admin / DBMC / BM / Teller: full dashboard
   return(
     <div className="sb">
       <div className="welcome">
@@ -706,7 +699,6 @@ function HomePage({user,targets}){
         <div className="welcome-emoji">🏦</div>
       </div>
 
-      {/* Stats */}
       <div className="sg2" style={{marginTop:14}}>
         <div className="scard"><div className="scard-icon">📋</div><div className="scard-val" style={{color:"var(--p)"}}>{todayRpts.length}</div><div className="scard-lbl">Reports ថ្ងៃនេះ</div></div>
         <div className="scard"><div className="scard-icon">📊</div><div className="scard-val" style={{color:"#059669"}}>{monRpts.length}</div><div className="scard-lbl">Reports ខែនេះ</div></div>
@@ -714,11 +706,9 @@ function HomePage({user,targets}){
         <div className="scard" style={{marginTop:0}}><div className="scard-icon">👥</div><div className="scard-val" style={{color:"#0891b2"}}>{[...new Set(monRpts.map(r=>r.user))].length}</div><div className="scard-lbl">Staff Active</div></div>
       </div>
 
-      {/* Targets */}
       <div className="sec-title">🎯 Target ខែ{MONTHS[mon]}</div>
       {Object.entries(targets).map(([k,d])=><TargetCard key={k} cat={k} data={d}/>)}
 
-      {/* Insights */}
       <div className="sec-title">💡 Insights</div>
       <div style={{padding:"0 18px",display:"flex",flexDirection:"column",gap:8}}>
         {Object.entries(targets).map(([k,d])=>{
@@ -737,7 +727,6 @@ function HomePage({user,targets}){
         })}
       </div>
 
-      {/* Recent activities */}
       {acts.length>0&&<>
         <div className="sec-title">📣 ផែនការផ្សព្វផ្សាយ</div>
         {acts.slice(0,2).map(a=><ActivityCard key={a.fid||a.id} act={a} user={user} mini/>)}
@@ -747,9 +736,8 @@ function HomePage({user,targets}){
   );
 }
 
-// ─── ACTIVITY CARD COMPONENT ──────────────────────────────────────────────────
+// ─── ACTIVITY CARD COMPONENT (No image, full names & roles) ──────────────────
 function ActivityCard({act,user,mini=false,onApprove,onJoin}){
-  const TYPE_EMOJI={booth:"🏪",roadshow:"🚗"};
   const canApprove=["dbmc","bm","admin"].includes(user.role);
   const canJoin=["loan_officer","ma_khqr","ms_khqr","csa_officer"].includes(user.role);
   const approved=(act.requests||[]).filter(r=>r.status==="approved");
@@ -759,38 +747,52 @@ function ActivityCard({act,user,mini=false,onApprove,onJoin}){
 
   return(
     <div className="act-card">
-      <div className="act-img" style={{background:`linear-gradient(135deg,color-mix(in srgb,${act.type==="booth"?"#7c3aed":"#ea580c"} 20%,#f8f7ff),var(--g2))`}}>
-        <div style={{fontSize:52,opacity:.6}}>{TYPE_EMOJI[act.type]||"📣"}</div>
-        <span className={`act-type-badge ${act.type}`}>{act.type==="booth"?"🏪 Booth":"🚗 Roadshow"}</span>
-        <span className="act-date-badge">📅 {act.date}</span>
-      </div>
       <div className="act-body2">
         <div className="act-title2">{act.title}</div>
+        <div className="act-meta">
+          <span className="act-badge">{act.type==="booth"?"🏪 Booth":"🚗 Roadshow"}</span>
+          <span className="act-date-badge">📅 {act.date}</span>
+        </div>
         <div className="act-loc">📍 {[act.location,act.village,act.commune,act.district].filter(Boolean).join(" · ")}</div>
-        {(act.staffList||[]).length>0&&(
-          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-            {(act.staffList||[]).map((s,i)=>(
-              <span key={i} style={{fontSize:10,fontWeight:600,padding:"3px 9px",background:"var(--pm)",color:"var(--p)",borderRadius:20,border:"1px solid var(--bd2)"}}>
-                {ROLE[s.role]?.icon} {s.name}
-              </span>
-            ))}
+        
+        {/* Staff list with names and roles */}
+        {(act.staffList||[]).length>0 && (
+          <div style={{marginTop:4}}>
+            <div style={{fontSize:11, fontWeight:600, color:"var(--t1)", marginBottom:5}}>👥 ក្រុមការងារ:</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+              {(act.staffList||[]).map((s,i)=>(
+                <span key={i} style={{fontSize:10, fontWeight:600, padding:"3px 9px", background:"var(--pm)", color:"var(--p)", borderRadius:20, border:"1px solid var(--bd2)"}}>
+                  {ROLE[s.role]?.icon} {s.name} ({ROLE[s.role]?.label||s.role})
+                </span>
+              ))}
+            </div>
           </div>
         )}
-        {act.targetNew>0&&!mini&&(
+
+        {act.targetNew>0 && !mini && (
           <Prog label="KHQR New" value={act.actualNew||0} max={act.targetNew}/>
         )}
-        {act.targetNew>0&&mini&&(
+        {act.targetNew>0 && mini && (
           <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t2)"}}>
             <span>KHQR: <b style={{color:"var(--p)"}}>{act.actualNew||0}</b>/{act.targetNew}</span>
             <span style={{fontWeight:700,color:pct>=100?"#059669":"var(--p)"}}>{pct.toFixed(0)}%</span>
           </div>
         )}
-        {approved.length>0&&(
+        
+        {approved.length>0 && (
           <div className="act-members2">
-            {approved.map(r=><span key={r.user} className="act-member2 approved">✅ {r.user}</span>)}
+            {approved.map(r=>{
+              const staffRole = (act.staffList||[]).find(s=>s.name===r.user)?.role;
+              return (
+                <span key={r.user} className="act-member2 approved">
+                  ✅ {r.user} {staffRole ? `(${ROLE[staffRole]?.label||staffRole})` : ""}
+                </span>
+              );
+            })}
           </div>
         )}
-        {!mini&&canApprove&&pending.length>0&&(
+        
+        {!mini && canApprove && pending.length>0 && (
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {pending.map(r=>(
               <div key={r.user} className="req-row">
@@ -801,7 +803,8 @@ function ActivityCard({act,user,mini=false,onApprove,onJoin}){
             ))}
           </div>
         )}
-        {canJoin&&!mini&&(
+        
+        {canJoin && !mini && (
           myReq
             ? <span className={`s-${myReq.status}`}>{myReq.status==="pending"?"⏳ រង់ចាំ":myReq.status==="approved"?"✅ អនុម័ត":"❌ បដិសេធ"}</span>
             : <button className="btn btn-p btn-sm" onClick={()=>onJoin&&onJoin(act)}>📋 Request Join</button>
@@ -811,25 +814,45 @@ function ActivityCard({act,user,mini=false,onApprove,onJoin}){
   );
 }
 
-// ─── ANALYTICS PAGE ───────────────────────────────────────────────────────────
+// ─── ANALYTICS PAGE (Fixed Staff Performance with real data) ─────────────────
 function AnalyticsPage({targets,user,onUpdateTargets}){
   const [tab,st]=useState("kpi");
-  const [rpts,sr]=useState([]); const [loading,sl]=useState(true);
+  const [rpts,sr]=useState([]);
+  const [users,setUsers]=useState([]);
+  const [kpis,setKpis]=useState([]);
+  const [loading,sl]=useState(true);
   const mon=new Date().getMonth();
   const canEdit=["dbmc","admin"].includes(user.role);
   const [editMode,setEdit]=useState(false);
   const [draft,setDraft]=useState(()=>JSON.parse(JSON.stringify(targets)));
+  
+  const monthKey = `${new Date().getFullYear()}-${String(mon+1).padStart(2,"0")}`;
 
-  useEffect(()=>{ getReports().then(r=>{sr(r);sl(false);}); },[]);
+  useEffect(()=>{
+    Promise.all([getReports(), getUsers(), getKPIs()]).then(([r,u,k])=>{
+      sr(r);
+      setUsers(u);
+      setKpis(k);
+      sl(false);
+    });
+  },[]);
 
   const save=async()=>{ await saveTargets(draft); onUpdateTargets(draft); setEdit(false); };
 
-  const monRpts=rpts.filter(r=>new Date(r.ts).getMonth()===mon);
+  // Real staff performance data
+  const staffPerformance = users
+    .filter(u => !["admin","bm","dbmc"].includes(u.role))
+    .map(u => {
+      const kpi = kpis.find(k => k.uid === u.id && k.month === monthKey);
+      const score = kpi ? parseInt(kpi.score) || 0 : 0;
+      return { name: u.display, role: u.role, score };
+    })
+    .sort((a,b) => b.score - a.score);
+
   const monthly=[
     {name:"មីនា",Teller:4,CSA:5,Loan:3},{name:"មេសា",Teller:6,CSA:4,Loan:5},
     {name:"ឧសភា",Teller:5,CSA:7,Loan:4},{name:"មិថុនា",Teller:3,CSA:5,Loan:3},
   ];
-  const kpiData=[{name:"Teller Sup",v:88},{name:"CSA Sup",v:92},{name:"Loan Sup",v:75},{name:"Loan Off",v:65},{name:"CSA Off",v:95}];
   const tgtChart=Object.entries(targets).map(([k,d])=>({name:d.label.split(" ")[0],Plan:d.plan,Actual:d.actual,color:d.color}));
 
   if(loading) return <div className="loading-full"><div className="spinner"/></div>;
@@ -846,19 +869,21 @@ function AnalyticsPage({targets,user,onUpdateTargets}){
       {tab==="kpi"&&<>
         <Card icon="📊" title="KPI Overview" sub={`ខែ ${MONTHS[mon]}`} accent="#7c3aed">
           <div style={{display:"flex",flexWrap:"wrap",gap:14,justifyContent:"center",padding:"4px 0"}}>
-            {kpiData.map(k=><KRing key={k.name} pct={k.v} name={k.name.split(" ").slice(0,2).join(" ")} size={86}/>)}
+            {staffPerformance.slice(0,6).map(s=><KRing key={s.name} pct={s.score} name={s.name.split(" ").slice(0,2).join(" ")} size={86}/>)}
           </div>
         </Card>
         <div style={{height:12}}/>
         <div className="chart-w">
           <div className="chart-t">📊 KPI Score</div>
           <ResponsiveContainer width="100%" height={155}>
-            <BarChart data={kpiData} margin={{top:0,right:4,left:-24,bottom:0}}>
-              <XAxis dataKey="name" tick={{fill:"#9ca3af",fontSize:9}} axisLine={false} tickLine={false}/>
+            <BarChart data={staffPerformance.slice(0,8)} margin={{top:0,right:4,left:-24,bottom:0}}>
+              <XAxis dataKey="name" tick={{fill:"#9ca3af",fontSize:9}} axisLine={false} tickLine={false} angle={-20} textAnchor="end" height={50}/>
               <YAxis domain={[0,100]} tick={{fill:"#9ca3af",fontSize:9}} axisLine={false} tickLine={false}/>
               <Tooltip contentStyle={TTS} cursor={{fill:"rgba(124,58,237,.06)"}}/>
-              <Bar dataKey="v" name="KPI%" radius={[5,5,0,0]} maxBarSize={28}>
-                {kpiData.map((d,i)=><Cell key={i} fill={d.v>=90?"#059669":d.v>=75?"#7c3aed":d.v>=55?"#d97706":"#dc2626"}/>)}
+              <Bar dataKey="score" name="KPI%" radius={[5,5,0,0]} maxBarSize={28}>
+                {staffPerformance.map((d,i)=>(
+                  <Cell key={i} fill={d.score>=90?"#059669":d.score>=70?"#7c3aed":d.score>=50?"#d97706":"#dc2626"}/>
+                ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -939,18 +964,19 @@ function AnalyticsPage({targets,user,onUpdateTargets}){
 
       {tab==="staff"&&(
         <Card icon="🏆" title="Staff Performance" sub={`ខែ ${MONTHS[mon]}`} accent="#f59e0b">
-          {kpiData.sort((a,b)=>b.v-a.v).map((s,i)=>(
-            <div key={s.name} style={{display:"flex",alignItems:"center",gap:10}}>
+          {staffPerformance.map((s,i)=>(
+            <div key={s.name} style={{display:"flex",alignItems:"center",gap:10, marginBottom:12}}>
               <div style={{width:24,height:24,borderRadius:8,background:i===0?"#fef9c3":i===1?"#f3f4f6":"var(--g2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:i===0?"#ca8a04":i===1?"#6b7280":"#9ca3af",flexShrink:0,border:`1px solid ${i===0?"#fde047":"var(--bd)"}`}}>{i+1}</div>
               <div style={{flex:1}}>
-                <div style={{fontSize:12,fontWeight:700,color:"var(--t0)",marginBottom:3}}>{s.name}</div>
+                <div style={{fontSize:12,fontWeight:700,color:"var(--t0)",marginBottom:3}}>{s.name} <span style={{fontSize:10, fontWeight:"normal", color:"var(--t2)"}}>({ROLE[s.role]?.label})</span></div>
                 <div style={{height:5,background:"var(--g3)",borderRadius:20,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${s.v}%`,borderRadius:20,background:s.v>=90?"#059669":s.v>=75?"#7c3aed":s.v>=55?"#d97706":"#dc2626",transition:"width .7s"}}/>
+                  <div style={{height:"100%",width:`${s.score}%`,borderRadius:20,background:s.score>=90?"#059669":s.score>=70?"#7c3aed":s.score>=50?"#d97706":"#dc2626",transition:"width .7s"}}/>
                 </div>
               </div>
-              <div style={{fontSize:15,fontWeight:900,color:s.v>=90?"#059669":s.v>=75?"#7c3aed":s.v>=55?"#d97706":"#dc2626"}}>{s.v}%</div>
+              <div style={{fontSize:15,fontWeight:900,color:s.score>=90?"#059669":s.score>=70?"#7c3aed":s.score>=50?"#d97706":"#dc2626"}}>{s.score}%</div>
             </div>
           ))}
+          {staffPerformance.length===0 && <div className="info-b">មិនទាន់មានទិន្នន័យ KPI</div>}
         </Card>
       )}
       <div style={{height:8}}/>
@@ -1062,7 +1088,7 @@ function ActivitiesPage({user}){
             <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
               {form.staffList.map((s,i)=>(
                 <span key={i} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,background:"var(--pm)",border:"1px solid var(--bd2)",borderRadius:20,padding:"4px 11px",color:"var(--p)",fontWeight:600}}>
-                  {ROLE[s.role]?.icon} {s.name}
+                  {ROLE[s.role]?.icon} {s.name} ({ROLE[s.role]?.label})
                   <span style={{cursor:"pointer",opacity:.55,marginLeft:2,fontSize:12}} onClick={()=>removeStaff(i)}>✕</span>
                 </span>
               ))}
@@ -1081,7 +1107,82 @@ function ActivitiesPage({user}){
   );
 }
 
-// ─── STAFF PAGE ───────────────────────────────────────────────────────────────
+// ─── KPI STAFF CARD (for StaffPage) ──────────────────────────────────────────
+function KPIStaffCard({ staff, k0, monthKey, onLoad, onSave }) {
+  const [sc, setSc] = useState(String(k0.score || ""));
+  const [nt, setNt] = useState(k0.notes || "");
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const id = `${staff.id}_${monthKey}`;
+    await saveKPI({
+      id,
+      uid: staff.id,
+      userName: staff.display,
+      score: sc,
+      notes: nt,
+      month: monthKey,
+    });
+    await onLoad();
+    setSaving(false);
+    onSave?.();
+  };
+
+  const scoreNum = parseInt(sc) || 0;
+  const levelColor = scoreNum >= 90 ? "#059669" : scoreNum >= 70 ? "#7c3aed" : scoreNum >= 50 ? "#d97706" : "#dc2626";
+
+  return (
+    <div className="card">
+      <div className="card-head" onClick={() => setOpen(!open)} style={{ cursor: "pointer" }}>
+        <div className="card-icon" style={{ background: `color-mix(in srgb, ${ROLE[staff.role]?.color || "#7c3aed"} 14%, #f5f3ff)` }}>
+          {ROLE[staff.role]?.icon || "👤"}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div className="card-title">{staff.display}</div>
+          <div className="card-sub">{ROLE[staff.role]?.label}</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ fontSize: 16, fontWeight: 900, color: levelColor }}>{sc || "—"}%</div>
+          <div style={{ fontSize: 11, color: "var(--t3)" }}>{open ? "▲" : "▼"}</div>
+        </div>
+      </div>
+      {open && (
+        <div className="card-body">
+          <div className="r2">
+            <F label="KPI Score (%)" ph="0-100" val={sc} set={setSc} nb />
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "var(--t1)" }}>Level</label>
+              <div
+                style={{
+                  padding: "11px 13px",
+                  background: "var(--g2)",
+                  borderRadius: 12,
+                  border: "1.5px solid var(--bd)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: levelColor,
+                }}
+              >
+                {scoreNum >= 90 ? "🏆 ល្អប្រសើរ" : scoreNum >= 70 ? "✅ ល្អ" : scoreNum >= 50 ? "⚠️ មធ្យម" : "❌ ត្រូវកែ"}
+              </div>
+            </div>
+          </div>
+          <div className="field">
+            <label>Notes</label>
+            <textarea className="nb" rows={2} placeholder="ការវាយតម្លៃ..." value={nt} onChange={(e) => setNt(e.target.value)} />
+          </div>
+          <button className="btn btn-p btn-sm" style={{ width: "auto", alignSelf: "flex-end" }} onClick={handleSave} disabled={saving}>
+            {saving ? "💾 Saving..." : "💾 Save KPI"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── STAFF PAGE (Fixed) ───────────────────────────────────────────────────────
 function StaffPage(){
   const [tab,st]=useState("overview");
   const [users,su]=useState([]); const [kpis,sk]=useState([]); const [att,sat]=useState([]);
@@ -1091,9 +1192,28 @@ function StaffPage(){
 
   const load=useCallback(async()=>{
     sl(true);
-    const [u,k,a]=await Promise.all([getUsers(),getKPIs(),getAttendance()]);
+    let [u,k,a]=await Promise.all([getUsers(),getKPIs(),getAttendance()]);
+    
+    // Auto-create KPI for new month if missing
+    const existingMonths = new Set(k.map(kpi => kpi.month));
+    if (!existingMonths.has(mk)) {
+      for (const staffMember of u.filter(u => !["admin","bm","dbmc"].includes(u.role))) {
+        const kpiId = `${staffMember.id}_${mk}`;
+        await saveKPI({
+          id: kpiId,
+          uid: staffMember.id,
+          userName: staffMember.display,
+          score: 0,
+          notes: "",
+          month: mk,
+        });
+      }
+      // reload fresh data
+      [u,k,a]=await Promise.all([getUsers(),getKPIs(),getAttendance()]);
+    }
     su(u); sk(k); sat(a); sl(false);
-  },[]);
+  },[mk]);
+
   useEffect(()=>{ load(); },[]);
 
   const staff=users.filter(u=>!["admin","bm","dbmc"].includes(u.role));
@@ -1152,39 +1272,18 @@ function StaffPage(){
           </div>
         </Card>
         <div style={{height:12}}/>
-        {staff.slice(0,5).map(s=>{
+
+        {staff.map(s=>{
           const k0=getKPI(s.id);
-          const [sc,setSc]=useState(String(k0.score||""));
-          const [nt,setNt]=useState(k0.notes||"");
-          const [open,so]=useState(false);
-          return(
-            <div key={s.id} className="card">
-              <div className="card-head" onClick={()=>so(!open)} style={{cursor:"pointer"}}>
-                <div className="card-icon" style={{background:`color-mix(in srgb,${ROLE[s.role]?.color||"#7c3aed"} 14%,#f5f3ff)`}}>{ROLE[s.role]?.icon||"👤"}</div>
-                <div style={{flex:1}}><div className="card-title">{s.display}</div><div className="card-sub">{ROLE[s.role]?.label}</div></div>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{fontSize:16,fontWeight:900,color:parseInt(sc)>=90?"#059669":parseInt(sc)>=70?"#7c3aed":parseInt(sc)>=50?"#d97706":"#dc2626"}}>{sc||"—"}%</div>
-                  <div style={{fontSize:11,color:"var(--t3)"}}>{open?"▲":"▼"}</div>
-                </div>
-              </div>
-              {open&&<div className="card-body">
-                <div className="r2">
-                  <F label="KPI Score (%)" ph="0-100" val={sc} set={setSc} nb/>
-                  <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                    <label style={{fontSize:11,fontWeight:600,color:"var(--t1)"}}>Level</label>
-                    <div style={{padding:"11px 13px",background:"var(--g2)",borderRadius:12,border:"1.5px solid var(--bd)",fontSize:12,fontWeight:700,color:parseInt(sc)>=90?"#059669":parseInt(sc)>=70?"#7c3aed":parseInt(sc)>=50?"#d97706":"#dc2626"}}>
-                      {parseInt(sc)>=90?"🏆 ល្អប្រសើរ":parseInt(sc)>=70?"✅ ល្អ":parseInt(sc)>=50?"⚠️ មធ្យម":"❌ ត្រូវកែ"}
-                    </div>
-                  </div>
-                </div>
-                <div className="field"><label>Notes</label><textarea className="nb" rows={2} placeholder="ការវាយតម្លៃ..." value={nt} onChange={e=>setNt(e.target.value)}/></div>
-                <button className="btn btn-p btn-sm" style={{width:"auto",alignSelf:"flex-end"}} onClick={async()=>{
-                  const id=s.id+"_"+mk;
-                  await saveKPI({id,uid:s.id,userName:s.display,score:sc,notes:nt,month:mk});
-                  await load(); stt("KPI បានរក្សាទុក!");
-                }}>💾 Save KPI</button>
-              </div>}
-            </div>
+          return (
+            <KPIStaffCard
+              key={s.id}
+              staff={s}
+              k0={k0}
+              monthKey={mk}
+              onLoad={load}
+              onSave={() => stt("KPI បានរក្សាទុក!")}
+            />
           );
         })}
       </>}
@@ -1478,7 +1577,6 @@ function TeamReports({user}){
   };
   const teamLabel={supervisor_teller:"Teller",supervisor_csa:"CSA",supervisor_loan:"Loan"};
   const types=typeMap[user.role]||[];
-  // Teller Sup and CSA Sup can also see Loan weekly plans
   const canSeeLoan=["supervisor_teller","supervisor_csa"].includes(user.role);
 
   useEffect(()=>{
@@ -1505,7 +1603,6 @@ function TeamReports({user}){
 
   return(
     <div className="sb">
-      {/* Banner */}
       <div className="welcome" style={{background:`linear-gradient(135deg,${ROLE[user.role]?.color||"#7c3aed"},color-mix(in srgb,${ROLE[user.role]?.color||"#7c3aed"} 70%,#000))`}}>
         <div className="welcome-greet">ក្រុម {teamLabel[user.role]||""} · ខែ{MONTHS[mon]}</div>
         <div className="welcome-name">{user.display}</div>
@@ -1513,7 +1610,6 @@ function TeamReports({user}){
         <div className="welcome-emoji">{ROLE[user.role]?.icon||"👥"}</div>
       </div>
 
-      {/* Quick stats */}
       <div className="sg2" style={{marginTop:14}}>
         <div className="scard">
           <div className="scard-icon">📋</div>
@@ -1527,7 +1623,6 @@ function TeamReports({user}){
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="tabs">
         {[
           ["reports","📋 Reports"],
@@ -1574,7 +1669,6 @@ function TeamReports({user}){
                     <span style={{fontSize:10,fontWeight:600,padding:"2px 8px",background:"#fffbeb",border:"1px solid #fcd34d",color:"#d97706",borderRadius:20}}>🟡 {sum.l}</span>
                   </div>
                 </div>
-                {/* KPI Ring mini */}
                 <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
                   <div style={{position:"relative",width:52,height:52}}>
                     <svg width="52" height="52" viewBox="0 0 52 52">
@@ -1614,7 +1708,6 @@ function LoanWeeklyView({user,isReadOnly=false}){
 
   if(loading) return <div style={{padding:24,textAlign:"center"}}><div className="spinner" style={{margin:"0 auto"}}/></div>;
 
-  // Group by user+week
   const grouped={};
   rpts.forEach(r=>{
     const key=r.user+"_"+(r.data?.df||r.ts?.slice(0,10));
@@ -1640,7 +1733,6 @@ function LoanWeeklyView({user,isReadOnly=false}){
       {plans.length===0&&<div className="info-b">មិនទាន់មាន Loan Report</div>}
       {plans.map((p,i)=>(
         <div key={i} style={{background:"#fff",border:"1px solid var(--bd)",borderRadius:16,overflow:"hidden",boxShadow:"var(--sh)"}}>
-          {/* Header */}
           <div style={{background:"linear-gradient(135deg,#7c3aed,#5b21b6)",padding:"13px 15px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
               <div style={{fontSize:12,color:"rgba(255,255,255,.75)",marginBottom:2}}>💳 Loan Disbursement</div>
@@ -1653,7 +1745,6 @@ function LoanWeeklyView({user,isReadOnly=false}){
               <div style={{fontSize:9,color:"rgba(255,255,255,.55)",marginTop:3}}>{new Date(p.ts).toLocaleDateString()}</div>
             </div>
           </div>
-          {/* Daily breakdown */}
           <div style={{padding:"12px 15px",display:"flex",flexDirection:"column",gap:6}}>
             {Object.entries(p.days).length===0&&(
               <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",padding:"8px 0"}}>គ្មានទិន្នន័យ</div>
