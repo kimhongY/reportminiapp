@@ -1049,9 +1049,10 @@ function ActivitiesPage({user}){
           <div className="r2">
             <F label="KHQR Target New" ph="0" val={String(form.targetNew)} set={v=>ff("targetNew",parseFloat(v)||0)} nb/>
             <F label="Reprint Target" ph="0" val={String(form.targetReprint)} set={v=>ff("targetReprint",parseFloat(v)||0)} nb/>
+            <F label="CIF Target New" ph="0" val={String(form.targetNewCIF)} set={v=>ff("targetNewCIF",parseFloat(v)||0)} nb/>
           </div>
           <div className="div"/>
-          <div className="sbox-lbl" style={{fontSize:11,fontWeight:700,color:"var(--t1)"}}>👥 Staff ទទួលខុសត្រូវ (add ២-៣ នាក់)</div>
+          <div className="sbox-lbl" style={{fontSize:11,fontWeight:700,color:"var(--t1)"}}>👥 Staff ទទួលខុសត្រូវ </div>
           <div className="r2">
             <F label="ឈ្មោះ Staff" ph="ឈ្មោះ..." val={newStaff.name} set={v=>setNS(p=>({...p,name:v}))} nb/>
             <Sel label="តួនាទី" val={newStaff.role} set={v=>setNS(p=>({...p,role:v}))} opts={Object.entries(ROLE).filter(([k])=>!["admin","bm","dbmc"].includes(k)).map(([k,v])=>[k,v.icon+" "+v.label])}/>
