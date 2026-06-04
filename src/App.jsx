@@ -91,10 +91,13 @@ html,body{height:100%;overflow:hidden;background:#f8f7ff}
   --sh2:0 8px 32px rgba(0,0,0,.1);
   --shp:0 8px 24px rgba(124,58,237,.25);
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans Khmer','Segoe UI',sans-serif;font-size:13px;line-height:1.5;color:var(--t0);-webkit-font-smoothing:antialiased}
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700&display=swap');
+body{font-family:'Noto Sans Khmer',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.55;color:var(--t0);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
 /* APP */
 .app{max-width:430px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:var(--g);position:relative;overflow:hidden}
+/* VERSION FOOTER */
+.ver-tag{position:fixed;bottom:76px;right:10px;font-size:8px;color:var(--t4);z-index:40;pointer-events:none;letter-spacing:.04em;text-align:right;line-height:1.5}
 .app>*{position:relative;z-index:1}
 
 /* SCROLL */
@@ -757,55 +760,266 @@ function ActivityCard({act,user,mini=false,onApprove,onJoin}){
   const myReq=(act.requests||[]).find(r=>r.user===user.display);
   const pct=act.targetNew>0?Math.min(((act.actualNew||0)/act.targetNew)*100,100):0;
 
+  // Activity date match for Actual — only count reports on activity date
+  const actDate=act.date||"";
+  // Sum actual from reports matching activity date
+  const actKHQR=(act.relatedReports||[]).filter(r=>(r.ts||"").startsWith(actDate)).reduce((s,r)=>s+(parseInt(r.data?.nK||0)),0);
+  const actCIF=(act.relatedReports||[]).filter(r=>(r.ts||"").startsWith(actDate)).reduce((s,r)=>s+(parseInt(r.data?.newCif||0)),0);
+
   return(
-    <div className="act-card">
-      <div className="act-img" style={{background:`linear-gradient(135deg,color-mix(in srgb,${act.type==="booth"?"#7c3aed":"#ea580c"} 20%,#f8f7ff),var(--g2))`}}>
-        <div style={{fontSize:52,opacity:.6}}>{TYPE_EMOJI[act.type]||"📣"}</div>
-        <span className={`act-type-badge ${act.type}`}>{act.type==="booth"?"🏪 Booth":"🚗 Roadshow"}</span>
-        <span className="act-date-badge">📅 {act.date}</span>
-      </div>
-      <div className="act-body2">
-        <div className="act-title2">{act.title}</div>
-        <div className="act-loc">📍 {[act.location,act.village,act.commune,act.district].filter(Boolean).join(" · ")}</div>
-        {(act.staffList||[]).length>0&&(
-          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-            {(act.staffList||[]).map((s,i)=>(
-              <span key={i} style={{fontSize:10,fontWeight:600,padding:"3px 9px",background:"var(--pm)",color:"var(--p)",borderRadius:20,border:"1px solid var(--bd2)"}}>
-                {ROLE[s.role]?.icon} {s.name}
+    <div className="act-card" style={{margin:"0 18px",borderRadius:16,border:"1.5px solid var(--bd)",background:"#fff",boxShadow:"var(--sh)",overflow:"hidden"}}>
+      {/* Header strip — no image, clean info */}
+      <div style={{background:`linear-gradient(135deg,${act.type==="booth"?"#7c3aed":"#ea580c"},${act.type==="booth"?"#6d28d9":"#c2410c"})`,padding:"13px 15px",position:"relative"}}>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",gap:6,marginBottom:5,flexWrap:"wrap",alignItems:"center"}}>
+              <span style={{fontSize:10,fontWeight:700,padding:"2px 9px",background:"rgba(255,255,255,.22)",color:"#fff",borderRadius:20}}>
+                {act.type==="booth"?"🏪 Booth":"🚗 Roadshow"}
               </span>
-            ))}
+              <span style={{fontSize:10,color:"rgba(255,255,255,.8)"}}>📅 {act.date}</span>
+            </div>
+            <div style={{fontSize:15,fontWeight:800,color:"#fff",letterSpacing:"-.01em",lineHeight:1.3}}>{act.title}</div>
+          </div>
+          {(act.targetNew>0||act.targetCIF>0)&&(
+            <div style={{background:"rgba(255,255,255,.2)",borderRadius:10,padding:"6px 10px",textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{pct.toFixed(0)}%</div>
+              <div style={{fontSize:9,color:"rgba(255,255,255,.75)"}}>KHQR</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{padding:"13px 15px",display:"flex",flexDirection:"column",gap:10}}>
+        {/* Location */}
+        <div style={{fontSize:11,color:"var(--t2)",display:"flex",alignItems:"flex-start",gap:5}}>
+          <span style={{flexShrink:0}}>📍</span>
+          <span>{[act.location,act.village,act.commune,act.district].filter(Boolean).join(" · ")}</span>
+        </div>
+
+        {/* Staff List — full name + role */}
+        {(act.staffList||[]).length>0&&(
+          <div>
+            <div style={{fontSize:10,fontWeight:700,color:"var(--t2)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:5}}>👥 Staff ទទួលខុសត្រូវ</div>
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              {(act.staffList||[]).map((s,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--g2)",borderRadius:10,border:"1px solid var(--bd2)"}}>
+                  <span style={{fontSize:16,flexShrink:0}}>{ROLE[s.role]?.icon||"👤"}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"var(--t0)"}}>{s.name}</div>
+                    <div style={{fontSize:10,color:"var(--t2)"}}>{ROLE[s.role]?.label||s.role}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
-        {act.targetNew>0&&!mini&&(
-          <Prog label="KHQR New" value={act.actualNew||0} max={act.targetNew}/>
-        )}
-        {act.targetNew>0&&mini&&(
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t2)"}}>
-            <span>KHQR: <b style={{color:"var(--p)"}}>{act.actualNew||0}</b>/{act.targetNew}</span>
-            <span style={{fontWeight:700,color:pct>=100?"#059669":"var(--p)"}}>{pct.toFixed(0)}%</span>
+
+        {/* Target vs Actual — from reports matching activity date */}
+        {(act.targetNew>0||act.targetCIF>0||act.targetReprint>0)&&(
+          <div>
+            <div style={{fontSize:10,fontWeight:700,color:"var(--t2)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>🎯 Target vs Actual</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {act.targetNew>0&&(
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t2)",marginBottom:3}}>
+                    <span>📱 KHQR New</span>
+                    <span><b style={{color:"var(--p)"}}>{act.actualNew||0}</b> / {act.targetNew} <span style={{color:act.actualNew>=act.targetNew?"#059669":"#d97706"}}>{act.targetNew>0?((act.actualNew||0)/act.targetNew*100).toFixed(0):0}%</span></span>
+                  </div>
+                  <div style={{height:6,background:"var(--g3)",borderRadius:20,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${act.targetNew>0?Math.min(((act.actualNew||0)/act.targetNew)*100,100):0}%`,background:"var(--p)",borderRadius:20,transition:"width .6s"}}/>
+                  </div>
+                </div>
+              )}
+              {act.targetReprint>0&&(
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t2)",marginBottom:3}}>
+                    <span>🔄 KHQR Reprint</span>
+                    <span><b style={{color:"#0891b2"}}>{act.actualReprint||0}</b> / {act.targetReprint}</span>
+                  </div>
+                  <div style={{height:6,background:"var(--g3)",borderRadius:20,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${act.targetReprint>0?Math.min(((act.actualReprint||0)/act.targetReprint)*100,100):0}%`,background:"#0891b2",borderRadius:20,transition:"width .6s"}}/>
+                  </div>
+                </div>
+              )}
+              {act.targetCIF>0&&(
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t2)",marginBottom:3}}>
+                    <span>🪪 New CIF</span>
+                    <span><b style={{color:"#059669"}}>{act.actualCIF||0}</b> / {act.targetCIF}</span>
+                  </div>
+                  <div style={{height:6,background:"var(--g3)",borderRadius:20,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${act.targetCIF>0?Math.min(((act.actualCIF||0)/act.targetCIF)*100,100):0}%`,background:"#059669",borderRadius:20,transition:"width .6s"}}/>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
+
+        {/* Approved members */}
         {approved.length>0&&(
-          <div className="act-members2">
-            {approved.map(r=><span key={r.user} className="act-member2 approved">✅ {r.user}</span>)}
+          <div>
+            <div style={{fontSize:10,fontWeight:700,color:"var(--t2)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:5}}>✅ អ្នកចូលរួម</div>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {approved.map(r=>(
+                <div key={r.user} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 10px",background:"#f0fdf4",border:"1px solid #86efac",borderRadius:9}}>
+                  <span style={{fontSize:10,fontWeight:700,color:"#059669"}}>✅</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#065f46"}}>{r.user}</div>
+                    <div style={{fontSize:10,color:"#6b7280"}}>📅 {r.date} · {ROLE[r.role]?.label||r.role}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
+
+        {/* Pending approvals */}
         {!mini&&canApprove&&pending.length>0&&(
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {pending.map(r=>(
-              <div key={r.user} className="req-row">
-                <div style={{flex:1}}><div className="req-name">{r.user}</div><div className="req-sub">📅 {r.date}</div></div>
-                <button className="btn-xs btn-approve" onClick={()=>onApprove&&onApprove(act,r.user,true)}>✓ Approve</button>
-                <button className="btn-xs btn-reject-s" onClick={()=>onApprove&&onApprove(act,r.user,false)}>✕</button>
-              </div>
-            ))}
+          <div>
+            <div style={{fontSize:10,fontWeight:700,color:"var(--t2)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:5}}>🔔 សំណើរចូលរួម</div>
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              {pending.map(r=>(
+                <div key={r.user} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:10}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"var(--t0)"}}>{r.user}</div>
+                    <div style={{fontSize:10,color:"var(--t2)"}}>📅 {r.date} · {ROLE[r.role]?.label||r.role}</div>
+                  </div>
+                  <button className="btn-xs btn-approve" onClick={()=>onApprove&&onApprove(act,r.user,true)}>✓</button>
+                  <button className="btn-xs btn-reject-s" onClick={()=>onApprove&&onApprove(act,r.user,false)}>✕</button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
+
+        {/* Join button */}
         {canJoin&&!mini&&(
           myReq
-            ? <span className={`s-${myReq.status}`}>{myReq.status==="pending"?"⏳ រង់ចាំ":myReq.status==="approved"?"✅ អនុម័ត":"❌ បដិសេធ"}</span>
-            : <button className="btn btn-p btn-sm" onClick={()=>onJoin&&onJoin(act)}>📋 Request Join</button>
+            ? <span className={`s-${myReq.status}`}>{myReq.status==="pending"?"⏳ រង់ចាំអនុម័ត":myReq.status==="approved"?"✅ បានអនុម័ត":"❌ បានបដិសេធ"}</span>
+            : <button className="btn btn-p btn-sm" style={{alignSelf:"flex-start"}} onClick={()=>onJoin&&onJoin(act)}>📋 Request Join</button>
         )}
+      </div>
+    </div>
+  );
+}
+
+
+// ─── STAFF PERFORMANCE PANEL ─────────────────────────────────────────────────
+function StaffPerformancePanel({rpts,kpiData,mon,perfByPeriod}){
+  const [period,sp]=useState("monthly");
+  const yr=new Date().getFullYear();
+
+  const getPeriodRpts=()=>perfByPeriod(period);
+
+  const staffPerf=()=>{
+    const pr=getPeriodRpts();
+    const map={};
+    pr.forEach(r=>{
+      if(!map[r.user]) map[r.user]={name:r.user,count:0,cif:0,khqr:0,loan:0,deposit:0};
+      const d=r.data||{};
+      map[r.user].count++;
+      if(r.type==="CSA"||r.type==="CSA_Officer"){
+        map[r.user].cif+=parseInt(d.newCif||0);
+        map[r.user].khqr+=parseInt(d.newKhqr||0);
+        map[r.user].deposit+=parseFloat(d.deposit||0)/1e6;
+      }
+      if(r.type==="Loan"||r.type==="Loan_Officer"){
+        map[r.user].loan+=["mK","tK","wK","thK","fK"].reduce((s,k)=>s+parseFloat(d[k]||0),0)/1e6;
+      }
+      if(r.type==="MA_KHQR"||r.type==="MS_KHQR"){
+        map[r.user].khqr+=parseInt(d.nK||0)+parseInt(d.rK||0);
+      }
+    });
+    return Object.values(map).sort((a,b)=>b.count-a.count);
+  };
+
+  const perf=staffPerf();
+  const maxCount=perf[0]?.count||1;
+  const kpiMap={};
+  kpiData.forEach(k=>{ kpiMap[k.name]=k.v; });
+
+  const periodLabel={weekly:"ប្រចាំសប្ដាហ៍",monthly:"ប្រចាំខែ",quarterly:"ប្រចាំ Q"};
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      {/* Period selector */}
+      <div style={{display:"flex",gap:6,padding:"0 18px",overflowX:"auto"}}>
+        {[["weekly","📅 សប្ដាហ៍"],["monthly","📆 ខែ"],["quarterly","📊 Q"]].map(([k,l])=>(
+          <button key={k} className={`stab ${period===k?"on":""}`} onClick={()=>sp(k)}>{l}</button>
+        ))}
+      </div>
+
+      {/* Stats row */}
+      <div style={{padding:"0 18px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+        {[
+          {icon:"👥",lbl:"Staff",val:perf.length,c:"#7c3aed"},
+          {icon:"📋",lbl:"Reports",val:getPeriodRpts().length,c:"#2563eb"},
+          {icon:"📅",lbl:periodLabel[period],val:"",c:"#059669"},
+        ].map(x=>(
+          <div key={x.lbl} style={{background:"#fff",border:"1px solid var(--bd)",borderRadius:12,padding:"11px 10px",textAlign:"center",boxShadow:"var(--sh)"}}>
+            <div style={{fontSize:18,marginBottom:3}}>{x.icon}</div>
+            <div style={{fontSize:20,fontWeight:800,color:x.c,letterSpacing:"-.02em"}}>{x.val||""}</div>
+            <div style={{fontSize:9,fontWeight:700,color:"var(--t2)",textTransform:"uppercase",letterSpacing:".06em"}}>{x.lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Staff cards */}
+      <div style={{padding:"0 18px",display:"flex",flexDirection:"column",gap:10}}>
+        {perf.length===0&&(
+          <div style={{background:"#f0f9ff",border:"1px solid #bae6fd",borderRadius:12,padding:"14px 16px",fontSize:12,color:"#0369a1",textAlign:"center"}}>
+            មិនទាន់មានទិន្នន័យ{periodLabel[period]}
+          </div>
+        )}
+        {perf.map((s,i)=>{
+          const kpiScore=kpiMap[s.name]||0;
+          const col=kpiScore>=90?"#059669":kpiScore>=70?"#7c3aed":kpiScore>=50?"#d97706":"#9ca3af";
+          return(
+            <div key={s.name} style={{background:"#fff",border:"1px solid var(--bd)",borderRadius:14,overflow:"hidden",boxShadow:"var(--sh)"}}>
+              {/* Header */}
+              <div style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:11,borderBottom:"1px solid var(--bd)"}}>
+                <div style={{width:38,height:38,borderRadius:11,background:i===0?"linear-gradient(135deg,#fbbf24,#f59e0b)":i===1?"linear-gradient(135deg,#d1d5db,#9ca3af)":i===2?"linear-gradient(135deg,#fdba74,#f97316)":"var(--g2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:i<3?"14px":"13px",fontWeight:800,color:i<3?"#fff":"var(--t2)",flexShrink:0}}>
+                  {i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}`}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"var(--t0)",letterSpacing:"-.01em"}}>{s.name}</div>
+                  <div style={{fontSize:10,color:"var(--t2)",marginTop:1}}>{s.count} reports · {periodLabel[period]}</div>
+                </div>
+                {/* KPI ring mini */}
+                {kpiScore>0&&(
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
+                    <div style={{position:"relative",width:44,height:44}}>
+                      <svg width="44" height="44" viewBox="0 0 44 44">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="#f3f4f6" strokeWidth="4"/>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke={col} strokeWidth="4"
+                          strokeDasharray={2*Math.PI*17}
+                          strokeDashoffset={2*Math.PI*17*(1-kpiScore/100)}
+                          strokeLinecap="round" transform="rotate(-90 22 22)"
+                          style={{transition:"stroke-dashoffset .6s"}}/>
+                      </svg>
+                      <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:col}}>{kpiScore}%</div>
+                    </div>
+                    <div style={{fontSize:8,color:"var(--t2)",fontWeight:600}}>KPI</div>
+                  </div>
+                )}
+              </div>
+              {/* Metrics */}
+              <div style={{padding:"10px 14px",display:"flex",flexWrap:"wrap",gap:6}}>
+                {s.cif>0&&<span style={{fontSize:10,fontWeight:600,padding:"3px 10px",background:"#f0fdf4",border:"1px solid #86efac",color:"#059669",borderRadius:20}}>🪪 CIF: {s.cif}</span>}
+                {s.khqr>0&&<span style={{fontSize:10,fontWeight:600,padding:"3px 10px",background:"#f5f3ff",border:"1px solid #c4b5fd",color:"#7c3aed",borderRadius:20}}>📱 KHQR: {s.khqr}</span>}
+                {s.loan>0&&<span style={{fontSize:10,fontWeight:600,padding:"3px 10px",background:"#eff6ff",border:"1px solid #93c5fd",color:"#2563eb",borderRadius:20}}>💳 Loan: {s.loan.toFixed(1)}M</span>}
+                {s.deposit>0&&<span style={{fontSize:10,fontWeight:600,padding:"3px 10px",background:"#fff7ed",border:"1px solid #fdba74",color:"#ea580c",borderRadius:20}}>🏦 Dep: {s.deposit.toFixed(1)}M</span>}
+                {/* Bar */}
+                <div style={{width:"100%",marginTop:2}}>
+                  <div style={{height:5,background:"var(--g3)",borderRadius:20,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${(s.count/maxCount)*100}%`,background:i===0?"linear-gradient(90deg,#f59e0b,#fbbf24)":i===1?"linear-gradient(90deg,#6b7280,#9ca3af)":i===2?"linear-gradient(90deg,#f97316,#fdba74)":"linear-gradient(90deg,#7c3aed,#a78bfa)",borderRadius:20,transition:"width .6s"}}/>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -820,17 +1034,60 @@ function AnalyticsPage({targets,user,onUpdateTargets}){
   const [editMode,setEdit]=useState(false);
   const [draft,setDraft]=useState(()=>JSON.parse(JSON.stringify(targets)));
 
-  useEffect(()=>{ getReports().then(r=>{sr(r);sl(false);}); },[]);
+  const [kpis,sk]=useState([]);
+
+  useEffect(()=>{
+    Promise.all([getReports(),getKPIs()]).then(([r,k])=>{sr(r);sk(k);sl(false);});
+  },[]);
 
   const save=async()=>{ await saveTargets(draft); onUpdateTargets(draft); setEdit(false); };
 
   const monRpts=rpts.filter(r=>new Date(r.ts).getMonth()===mon);
-  const monthly=[
-    {name:"មីនា",Teller:4,CSA:5,Loan:3},{name:"មេសា",Teller:6,CSA:4,Loan:5},
-    {name:"ឧសភា",Teller:5,CSA:7,Loan:4},{name:"មិថុនា",Teller:3,CSA:5,Loan:3},
-  ];
-  const kpiData=[{name:"Teller Sup",v:88},{name:"CSA Sup",v:92},{name:"Loan Sup",v:75},{name:"Loan Off",v:65},{name:"CSA Off",v:95}];
-  const tgtChart=Object.entries(targets).map(([k,d])=>({name:d.label.split(" ")[0],Plan:d.plan,Actual:d.actual,color:d.color}));
+  const yr=new Date().getFullYear();
+  const mk=yr+"-"+String(mon+1).padStart(2,"0");
+
+  // Real KPI data from Firebase
+  const kpiData=kpis.filter(k=>k.month===mk).map(k=>({name:k.userName||"",v:parseInt(k.score)||0,uid:k.uid}));
+
+  // Monthly trend from real reports (last 6 months)
+  const monthly=Array.from({length:6},(_,i)=>{
+    const m=(mon-5+i+12)%12;
+    const yr2=new Date().getFullYear()-(mon-5+i<0?1:0);
+    const mr=rpts.filter(r=>{const d=new Date(r.ts);return d.getMonth()===m&&d.getFullYear()===yr2;});
+    return{name:MONTHS[m].slice(0,3),Teller:mr.filter(r=>r.type==="Teller").length,CSA:mr.filter(r=>r.type==="CSA"||r.type==="CSA_Officer").length,Loan:mr.filter(r=>r.type==="Loan"||r.type==="Loan_Officer").length};
+  });
+
+  // Actual from reports: CSA=newCIF+newKhqr, Loan=sum KHR, KHQR=nK
+  const calcActual=()=>{
+    let khqr=0,cif=0,deposit=0,loan=0;
+    monRpts.forEach(r=>{
+      if(r.type==="MA_KHQR"||r.type==="MS_KHQR"){ khqr+=parseInt(r.data?.nK||0)+parseInt(r.data?.rK||0); }
+      if(r.type==="CSA"||r.type==="CSA_Officer"){ cif+=parseInt(r.data?.newCif||0); deposit+=parseFloat(r.data?.deposit||0); }
+      if(r.type==="Loan"||r.type==="Loan_Officer"){ loan+=parseFloat(r.data?.mK||0)+parseFloat(r.data?.tK||0)+parseFloat(r.data?.wK||0)+parseFloat(r.data?.thK||0)+parseFloat(r.data?.fK||0); }
+    });
+    return{khqr,cif,deposit:deposit/1000000,loan:loan/1000000};
+  };
+  const actuals=calcActual();
+
+  // Merge actuals into targets for display
+  const targetsWithActual={};
+  Object.entries(targets).forEach(([k,d])=>{
+    targetsWithActual[k]={...d,actual:actuals[k]??d.actual};
+  });
+
+  const tgtChart=Object.entries(targetsWithActual).map(([k,d])=>({name:d.label.split(" ")[0],Plan:d.plan,Actual:parseFloat(d.actual)||0,color:d.color}));
+
+  // Staff performance: weekly/monthly/quarterly
+  const perfByPeriod=(period)=>{
+    const now=new Date(); const yr=now.getFullYear(); const m=now.getMonth();
+    return rpts.filter(r=>{
+      const d=new Date(r.ts);
+      if(period==="weekly"){const diff=(now-d)/864e5;return diff<=7;}
+      if(period==="monthly") return d.getMonth()===m&&d.getFullYear()===yr;
+      if(period==="quarterly") return Math.floor(d.getMonth()/3)===Math.floor(m/3)&&d.getFullYear()===yr;
+      return true;
+    });
+  };
 
   if(loading) return <div className="loading-full"><div className="spinner"/></div>;
 
@@ -878,19 +1135,21 @@ function AnalyticsPage({targets,user,onUpdateTargets}){
           </div>
         )}
         {editMode&&canEdit ? (
-          <Card icon="✏️" title="កែ Target" sub={`ខែ ${MONTHS[mon]}`} accent="#f59e0b">
+          <Card icon="✏️" title="កែ Target (Plan)" sub="DBMC Only · Actual ចេញ​ Auto ពី Reports" accent="#f59e0b">
+            <div className="info-b" style={{fontSize:11}}>📊 <b>Actual</b> គណនា​ Auto ពី​ Reports​ Staff ប្រចាំថ្ងៃ — DBMC​ set <b>Plan</b> តែប៉ុណ្ណោះ</div>
             {Object.entries(draft).map(([k,d])=>(
-              <div key={k} className="sbox">
-                <div className="sbox-lbl">{d.icon} {d.label}</div>
-                <div className="r2">
-                  <F label={`Plan (${d.unit||"unit"})`} ph="គោលដៅ" val={String(d.plan)} set={v=>setDraft(p=>({...p,[k]:{...p[k],plan:parseFloat(v)||0}}))} nb/>
-                  <F label={`Actual`} ph="ជាក់ស្ដែង" val={String(d.actual)} set={v=>setDraft(p=>({...p,[k]:{...p[k],actual:parseFloat(v)||0}}))} nb/>
+              <div key={k} style={{background:"var(--g2)",border:"1px solid var(--bd2)",borderRadius:12,padding:"11px 13px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <span style={{fontSize:18}}>{d.icon}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"var(--t0)"}}>{d.label}</span>
+                  <span style={{marginLeft:"auto",fontSize:11,color:"var(--t2)"}}>Actual: <b style={{color:"var(--p)"}}>{(actuals[k]||0).toLocaleString()}{d.unit}</b></span>
                 </div>
+                <F label={`Plan Target (${d.unit||"unit"})`} ph="គោលដៅ" val={String(d.plan)} set={v=>setDraft(p=>({...p,[k]:{...p[k],plan:parseFloat(v)||0}}))} nb/>
               </div>
             ))}
           </Card>
         ) : (
-          Object.entries(targets).map(([k,d])=><TargetCard key={k} cat={k} data={d}/>)
+          Object.entries(targetsWithActual).map(([k,d])=><TargetCard key={k} cat={k} data={d}/>)
         )}
         <div style={{height:10}}/>
         <div className="chart-w">
@@ -937,22 +1196,7 @@ function AnalyticsPage({targets,user,onUpdateTargets}){
         </div>
       </>}
 
-      {tab==="staff"&&(
-        <Card icon="🏆" title="Staff Performance" sub={`ខែ ${MONTHS[mon]}`} accent="#f59e0b">
-          {kpiData.sort((a,b)=>b.v-a.v).map((s,i)=>(
-            <div key={s.name} style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:24,height:24,borderRadius:8,background:i===0?"#fef9c3":i===1?"#f3f4f6":"var(--g2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:i===0?"#ca8a04":i===1?"#6b7280":"#9ca3af",flexShrink:0,border:`1px solid ${i===0?"#fde047":"var(--bd)"}`}}>{i+1}</div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:12,fontWeight:700,color:"var(--t0)",marginBottom:3}}>{s.name}</div>
-                <div style={{height:5,background:"var(--g3)",borderRadius:20,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${s.v}%`,borderRadius:20,background:s.v>=90?"#059669":s.v>=75?"#7c3aed":s.v>=55?"#d97706":"#dc2626",transition:"width .7s"}}/>
-                </div>
-              </div>
-              <div style={{fontSize:15,fontWeight:900,color:s.v>=90?"#059669":s.v>=75?"#7c3aed":s.v>=55?"#d97706":"#dc2626"}}>{s.v}%</div>
-            </div>
-          ))}
-        </Card>
-      )}
+      {tab==="staff"&&<StaffPerformancePanel rpts={rpts} kpiData={kpiData} mon={mon} perfByPeriod={perfByPeriod}/>}
       <div style={{height:8}}/>
     </div>
   );
@@ -974,6 +1218,7 @@ function ActivitiesPage({user}){
 
   const addStaff=()=>{
     if(!newStaff.name.trim())return;
+    if(form.staffList.length>=2){alert("អាចដាក់ Staff បានតែ 2 នាក់");return;}
     sf(p=>({...p,staffList:[...p.staffList,{name:newStaff.name.trim(),role:newStaff.role}]}));
     setNS({name:"",role:"loan_officer"});
   };
