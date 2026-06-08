@@ -97,3 +97,56 @@ export const getBg = async () => {
   catch { return null; }
 };
 export const saveBg = async (bg) => { await setDoc(doc(db,"settings","bg"),bg); };
+
+// ── MATERIALS STOCK ────────────────────────────────────────────────────────
+// Stock = master inventory set by DBMC
+export const getStock = async () => {
+  try {
+    const snap = await getDoc(doc(db,"settings","materials_stock"));
+    return snap.exists() ? snap.data() : {};
+  } catch { return {}; }
+};
+export const saveStock = async (stock) => {
+  await setDoc(doc(db,"settings","materials_stock"), stock);
+};
+
+// Material Requests = CSA morning request + evening return
+export const getMaterialRequests = async () => {
+  const q = query(collection(db,"material_requests"), orderBy("ts","desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d=>({fid:d.id,...d.data()}));
+};
+export const saveMaterialRequest = async (req) => {
+  if(req.fid){
+    const {fid,...data}=req;
+    await setDoc(doc(db,"material_requests",fid),data);
+  } else {
+    await addDoc(collection(db,"material_requests"),req);
+  }
+};
+export const deleteMaterialRequest = async (fid) => {
+  await deleteDoc(doc(db,"material_requests",fid));
+};
+
+// Delete Requests (DBMC → Admin)
+export const getDeleteRequests = async () => {
+  const snap = await getDocs(collection(db,"delete_requests"));
+  return snap.docs.map(d=>({fid:d.id,...d.data()}));
+};
+export const saveDeleteRequest = async (req) => {
+  await addDoc(collection(db,"delete_requests"),{...req,ts:new Date().toISOString()});
+};
+export const updateDeleteRequest = async (fid,data) => {
+  await updateDoc(doc(db,"delete_requests",fid),data);
+};
+export const deleteDeleteRequest = async (fid) => {
+  await deleteDoc(doc(db,"delete_requests",fid));
+};
+
+// Bulk delete reports older than N months
+export const deleteReportsBefore = async (beforeDate) => {
+  const snap = await getDocs(collection(db,"reports"));
+  const toDelete = snap.docs.filter(d=>(d.data().ts||"") < beforeDate);
+  await Promise.all(toDelete.map(d=>deleteDoc(d.ref)));
+  return toDelete.length;
+};
