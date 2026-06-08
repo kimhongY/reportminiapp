@@ -8,6 +8,10 @@ import {
   getAttendance, saveAttendance, deleteAttendance,
   getActivities, saveActivity, updateActivity, deleteActivity,
   getBg, saveBg,
+  getStock, saveStock,
+  getMaterialRequests, saveMaterialRequest, deleteMaterialRequest,
+  getDeleteRequests, saveDeleteRequest, updateDeleteRequest, deleteDeleteRequest,
+  deleteReportsBefore,
 } from "./firebase";
 
 const hashPassword = async (pw) => {
@@ -51,17 +55,33 @@ const DEFAULT_TARGETS = {
 };
 
 const ROLE = {
-  admin:             { icon:"👑", color:"#7c3aed", label:"Admin",             nav:["home","analytics","staff","activities","admin"],   team:"" },
-  supervisor_teller: { icon:"🏦", color:"#2563eb", label:"Supervisor Teller", nav:["report","team"],                                   team:"teller" },
-  supervisor_csa:    { icon:"🧾", color:"#059669", label:"Supervisor CSA",    nav:["report","team","activities"],                      team:"csa" },
-  supervisor_loan:   { icon:"💳", color:"#7c3aed", label:"Supervisor Loan",   nav:["report","team","activities"],                      team:"loan" },
-  loan_officer:      { icon:"📄", color:"#9333ea", label:"Loan Officer",      nav:["report","activities"],                             team:"loan" },
-  csa_officer:       { icon:"🪪", color:"#16a34a", label:"CSA Officer",       nav:["report","activities"],                             team:"csa" },
-  ma_khqr:           { icon:"📱", color:"#0891b2", label:"MA KHQR",           nav:["report","activities"],                             team:"khqr" },
-  ms_khqr:           { icon:"🔖", color:"#be185d", label:"MS KHQR",           nav:["report","activities"],                             team:"khqr" },
-  dbmc:              { icon:"📊", color:"#ea580c", label:"DBMC",              nav:["home","analytics","report","activities","staff"],   team:"" },
-  bm:                { icon:"🏢", color:"#0f766e", label:"BM",               nav:["home","analytics","activities","staff"],            team:"" },
+  admin:             { icon:"👑", color:"#7c3aed", label:"Admin",             nav:["home","analytics","staff","activities","materials","summary","admin"],   team:"" },
+  supervisor_teller: { icon:"🏦", color:"#2563eb", label:"Supervisor Teller", nav:["report","team"],                                               team:"teller" },
+  supervisor_csa:    { icon:"🧾", color:"#059669", label:"Supervisor CSA",    nav:["report","team","activities","materials"],                       team:"csa" },
+  supervisor_loan:   { icon:"💳", color:"#7c3aed", label:"Supervisor Loan",   nav:["report","team","activities"],                                   team:"loan" },
+  loan_officer:      { icon:"📄", color:"#9333ea", label:"Loan Officer",      nav:["report","activities"],                                          team:"loan" },
+  csa_officer:       { icon:"🪪", color:"#16a34a", label:"CSA Officer",       nav:["report","activities","materials"],                              team:"csa" },
+  ma_khqr:           { icon:"📱", color:"#0891b2", label:"MA KHQR",           nav:["report","activities"],                                          team:"khqr" },
+  ms_khqr:           { icon:"🔖", color:"#be185d", label:"MS KHQR",           nav:["report","activities"],                                          team:"khqr" },
+  dbmc:              { icon:"📊", color:"#ea580c", label:"DBMC",              nav:["home","analytics","report","activities","materials","staff","summary"],    team:"" },
+  bm:                { icon:"🏢", color:"#0f766e", label:"BM",               nav:["home","analytics","activities","materials","staff","summary"],             team:"" },
 };
+
+const MATERIAL_ITEMS = [
+  {id:"pen",       label:"Pen",          icon:"🖊️",  unit:"ដើម"},
+  {id:"notepad",   label:"Notepad",      icon:"📓",  unit:"ក្បាល"},
+  {id:"cardcase",  label:"Card Case",    icon:"💳",  unit:"ប្រអប់"},
+  {id:"cap",       label:"Cap",          icon:"🧢",  unit:"មួក"},
+  {id:"umbrella",  label:"Umbrella",     icon:"☂️",  unit:"ឆ័ត្រ"},
+  {id:"tshirt",    label:"T-Shirt",      icon:"👕",  unit:"ខ្នង"},
+  {id:"keychain",  label:"Keychain",     icon:"🗝️",  unit:"គ្រាប់"},
+  {id:"jersey",    label:"Jersey",       icon:"🎽",  unit:"ខ្នង"},
+  {id:"raincoat",  label:"Raincoat",     icon:"🧥",  unit:"ខ្នង"},
+  {id:"brochure",  label:"IA Brochure",  icon:"📄",  unit:"ក្រដាស"},
+  {id:"balloon",   label:"Balloon",      icon:"🎈",  unit:"គ្រាប់"},
+  {id:"helmet",    label:"Helmet",       icon:"⛑️",  unit:"មួក"},
+  {id:"ecobag",    label:"Eco-Bag",      icon:"👜",  unit:"ថង់"},
+];
 
 const NAV_META = {
   home:       { icon:"⌂",  label:"Home" },
@@ -71,6 +91,8 @@ const NAV_META = {
   activities: { icon:"◆",  label:"Activity" },
   staff:      { icon:"◐",  label:"Staff" },
   admin:      { icon:"⚙",  label:"Admin" },
+  materials:  { icon:"📦",  label:"Materials" },
+  summary:    { icon:"📈",  label:"Summary" },
 };
 
 const MONTHS = ["មករា","កុម្ភៈ","មីនា","មេសា","ឧសភា","មិថុនា","កក្កដា","សីហា","កញ្ញា","តុលា","វិច្ឆិកា","ធ្នូ"];
@@ -270,6 +292,10 @@ body{font-family:'Noto Sans Khmer',-apple-system,BlinkMacSystemFont,'Segoe UI',s
 .btn-orange:hover{filter:brightness(1.08);transform:translateY(-1px)}
 .btn-ghost{background:var(--g2);border:1.5px solid var(--bd);color:var(--t1);padding:9px 14px;font-size:12px;border-radius:10px;width:auto;font-weight:600}
 .btn-ghost:hover{background:var(--g3)}
+.btn-red{background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border:none;}
+.btn-red:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-out{background:var(--g2);border:1.5px solid var(--bd);color:var(--t2);padding:10px;cursor:pointer;border-radius:12px;font-family:inherit;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;}
+.btn-out:hover{background:var(--g3);color:var(--t0)}
 .btn-del{background:#fef2f2;border:1.5px solid #fecaca;color:#dc2626;padding:7px 12px;font-size:11px;border-radius:9px;width:auto;flex-shrink:0;cursor:pointer;font-family:inherit;font-weight:600}
 .btn-sm{padding:7px 13px;font-size:12px;border-radius:10px;width:auto}
 .btn-xs{padding:5px 11px;font-size:10px;border-radius:8px;width:auto;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:all .15s}
@@ -1615,6 +1641,286 @@ function ReportPage({user}){
   return <div className="sb"><div className="info-b" style={{margin:"18px"}}>Role មិនស្គាល់</div></div>;
 }
 
+
+// ─── REPORT SUMMARY (DBMC → Admin delete workflow) ───────────────────────────
+function ReportSummaryPage({user}){
+  const [rpts,sr]=useState([]); const [acts,sa]=useState([]);
+  const [delReqs,sdr]=useState([]); const [loading,sl]=useState(true);
+  const [toast,stt]=useState(""); const [tab,st]=useState("summary");
+  const canDelete=user.role==="admin";
+  const canRequest=user.role==="dbmc";
+
+  const load=useCallback(async()=>{
+    sl(true);
+    const [r,a,d]=await Promise.all([getReports(),getActivities(),getDeleteRequests()]);
+    sr(r); sa(a); sdr(d); sl(false);
+  },[]);
+  useEffect(()=>{ load(); },[]);
+
+  const mon=new Date().getMonth(); const yr=new Date().getFullYear();
+  const mk=yr+"-"+String(mon+1).padStart(2,"0");
+  const monRpts=rpts.filter(r=>new Date(r.ts).getMonth()===mon&&new Date(r.ts).getFullYear()===yr);
+
+  // Team summary
+  const teamSummary=[
+    { team:"Teller",    icon:"🏦", color:"#2563eb", types:["Teller"],
+      metrics:[{lbl:"Transactions",val:monRpts.filter(r=>r.type==="Teller").length,unit:""}] },
+    { team:"CSA",       icon:"🧾", color:"#059669", types:["CSA","CSA_Officer"],
+      metrics:[
+        {lbl:"New CIF",  val:monRpts.filter(r=>r.type==="CSA"||r.type==="CSA_Officer").reduce((s,r)=>s+(parseInt(r.data?.newCif)||0),0), unit:""},
+        {lbl:"KHQR",     val:monRpts.filter(r=>r.type==="CSA"||r.type==="CSA_Officer").reduce((s,r)=>s+(parseInt(r.data?.newKhqr)||0),0), unit:""},
+        {lbl:"Deposit",  val:monRpts.filter(r=>r.type==="CSA"||r.type==="CSA_Officer").reduce((s,r)=>s+(parseFloat(r.data?.deposit)||0),0)/1e6, unit:"M"},
+      ]},
+    { team:"Loan",      icon:"💳", color:"#7c3aed", types:["Loan","Loan_Officer"],
+      metrics:[
+        {lbl:"Disbursement",val:monRpts.filter(r=>r.type==="Loan"||r.type==="Loan_Officer").reduce((s,r)=>s+(["mK","tK","wK","thK","fK"].reduce((ss,k)=>ss+(parseFloat(r.data?.[k])||0),0)),0)/1e6, unit:"M KHR"},
+      ]},
+    { team:"KHQR",      icon:"📱", color:"#0891b2", types:["MA_KHQR","MS_KHQR"],
+      metrics:[
+        {lbl:"New KHQR",val:monRpts.filter(r=>r.type==="MA_KHQR"||r.type==="MS_KHQR").reduce((s,r)=>s+(parseInt(r.data?.nK)||0),0),unit:""},
+        {lbl:"Reprint",  val:monRpts.filter(r=>r.type==="MA_KHQR"||r.type==="MS_KHQR").reduce((s,r)=>s+(parseInt(r.data?.rK)||0),0),unit:""},
+      ]},
+  ];
+
+  // Activity performance
+  const actPerf=acts.map(a=>{
+    const pctK=a.targetNew>0?Math.min(((a.actualNew||0)/a.targetNew)*100,100):0;
+    const pctC=a.targetCIF>0?Math.min(((a.actualCIF||0)/a.targetCIF)*100,100):0;
+    return{...a,pctK,pctC};
+  });
+
+  // Delete request
+  const [reason,setReason]=useState("");
+  const [months,setMonths]=useState("3");
+  const sendDeleteReq=async()=>{
+    if(!reason.trim()){stt("err|សូមបញ្ចូលមូលហេតុ!");return;}
+    const cutoff=new Date();
+    cutoff.setMonth(cutoff.getMonth()-parseInt(months));
+    await saveDeleteRequest({
+      requestedBy:user.display,
+      role:user.role,
+      reason,
+      monthsAgo:parseInt(months),
+      cutoffDate:cutoff.toISOString().split("T")[0],
+      status:"pending",
+      rptCount:rpts.filter(r=>r.ts<cutoff.toISOString()).length,
+    });
+    await sendTelegram("🗑️ <b>Delete Report Request</b>\n👤 "+user.display+"\n📋 Reason: "+reason+"\n📅 Delete before: "+cutoff.toISOString().split("T")[0]+"\n📊 Reports: "+rpts.filter(r=>r.ts<cutoff.toISOString()).length+" records");
+    setReason(""); await load(); stt("ការស្នើ Delete បានផ្ញើ!");
+  };
+
+  const approveDelete=async(req)=>{
+    if(!window.confirm("Approve Delete "+req.rptCount+" reports?"))return;
+    const n=await deleteReportsBefore(req.cutoffDate+"T00:00:00");
+    await updateDeleteRequest(req.fid,{status:"approved",approvedAt:new Date().toISOString(),deletedCount:n});
+    stt("លុបបាន "+n+" reports!");
+    await load();
+  };
+  const rejectDelete=async(req)=>{
+    await updateDeleteRequest(req.fid,{status:"rejected"});
+    stt("បានបដិសេធ!");
+    await load();
+  };
+
+  // Generate PDF summary (print)
+  const printSummary=()=>{
+    const w=window.open("","_blank");
+    const html=`<html><head><title>Branch Report Summary ${mk}</title>
+    <style>body{font-family:sans-serif;padding:20px;color:#111}h1{font-size:18px;color:#7c3aed}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #e5e7eb;padding:8px;font-size:12px;text-align:left}th{background:#f3f4f6;font-weight:700}.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}</style></head>
+    <body>
+    <h1>📊 Branch Pro Report Summary — ខែ ${mk}</h1>
+    <p style="font-size:11px;color:#6b7280">Generated: ${new Date().toLocaleString()} · @byhengkimhong</p>
+    ${teamSummary.map(t=>`
+      <h3 style="color:${t.color};margin-top:18px">${t.icon} Team ${t.team}</h3>
+      <table><tr><th>Metric</th><th>Value</th></tr>
+      ${t.metrics.map(m=>`<tr><td>${m.lbl}</td><td><b>${typeof m.val==="number"?m.val.toFixed(m.unit==="M"||m.unit==="M KHR"?2:0):m.val} ${m.unit}</b></td></tr>`).join("")}
+      </table>
+    `).join("")}
+    <h3 style="margin-top:18px">📣 Activities Performance</h3>
+    <table><tr><th>Activity</th><th>Date</th><th>KHQR %</th><th>CIF %</th></tr>
+    ${actPerf.map(a=>`<tr><td>${a.title}</td><td>${a.date}</td><td>${a.pctK.toFixed(1)}%</td><td>${a.pctC.toFixed(1)}%</td></tr>`).join("")}
+    </table>
+    </body></html>`;
+    w.document.write(html);
+    w.document.close();
+    w.print();
+  };
+
+  if(loading) return <div className="loading-full"><div className="spinner"/></div>;
+
+  return(
+    <div className="sb">
+      {toast&&<Toast msg={toast.replace(/^err\|/,"")} type={toast.startsWith("err")?"err":"ok2"} onDone={()=>stt("")}/>}
+      <div className="scroll-tabs" style={{padding:"0 18px"}}>
+        {[["summary","📊 Summary"],["activities","📣 Activities"],...(canRequest?[["delete","🗑️ Delete Req"]]:canDelete?[["delete","🗑️ Approve"]]:  [])].map(([k,l])=>(
+          <button key={k} className={`stab ${tab===k?"on":""}`} onClick={()=>st(k)}>{l}</button>
+        ))}
+      </div>
+
+      {/* ── SUMMARY TAB ── */}
+      {tab==="summary"&&<>
+        <div style={{padding:"0 18px",display:"flex",flexDirection:"column",gap:12}}>
+          {/* Header */}
+          <div style={{background:"linear-gradient(135deg,#7c3aed,#5b21b6)",borderRadius:16,padding:"14px 16px",color:"#fff",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontSize:10,opacity:.75,textTransform:"uppercase",letterSpacing:".06em"}}>Branch Report</div>
+              <div style={{fontSize:16,fontWeight:800,marginTop:2}}>ខែ {MONTHS[mon]} {yr}</div>
+              <div style={{fontSize:11,opacity:.8,marginTop:3}}>{monRpts.length} Reports · {acts.length} Activities</div>
+            </div>
+            <button onClick={printSummary} style={{background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.3)",borderRadius:10,padding:"8px 14px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+              📄 Export PDF
+            </button>
+          </div>
+
+          {/* Team summaries */}
+          {teamSummary.map(t=>(
+            <div key={t.team} style={{background:"#fff",border:"1px solid var(--bd)",borderRadius:16,overflow:"hidden",boxShadow:"var(--sh)"}}>
+              <div style={{background:`linear-gradient(135deg,${t.color},color-mix(in srgb,${t.color} 80%,#000))`,padding:"11px 15px",display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:20}}>{t.icon}</span>
+                <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>Team {t.team}</div>
+                <span style={{marginLeft:"auto",fontSize:10,background:"rgba(255,255,255,.2)",color:"#fff",padding:"2px 9px",borderRadius:20,fontWeight:600}}>
+                  {monRpts.filter(r=>t.types.includes(r.type)).length} reports
+                </span>
+              </div>
+              <div style={{padding:"12px 15px",display:"flex",flexWrap:"wrap",gap:8}}>
+                {t.metrics.map(m=>(
+                  <div key={m.lbl} style={{background:"var(--g2)",border:"1px solid var(--bd2)",borderRadius:12,padding:"10px 14px",flex:"1 1 120px"}}>
+                    <div style={{fontSize:20,fontWeight:900,color:t.color,letterSpacing:"-.02em"}}>{typeof m.val==="number"?m.val.toFixed(m.unit==="M"||m.unit==="M KHR"?2:0):m.val}{m.unit&&<span style={{fontSize:11,fontWeight:600,marginLeft:2}}>{m.unit}</span>}</div>
+                    <div style={{fontSize:10,color:"var(--t2)",marginTop:2,fontWeight:600}}>{m.lbl}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </>}
+
+      {/* ── ACTIVITIES PERFORMANCE TAB ── */}
+      {tab==="activities"&&<div style={{padding:"0 18px",display:"flex",flexDirection:"column",gap:10}}>
+        {actPerf.length===0&&<div className="info-b">មិនទាន់មាន Activity</div>}
+        {actPerf.map(a=>(
+          <div key={a.fid||a.id} style={{background:"#fff",border:"1px solid var(--bd)",borderRadius:14,overflow:"hidden",boxShadow:"var(--sh)"}}>
+            <div style={{background:a.type==="booth"?"linear-gradient(135deg,#7c3aed,#6d28d9)":"linear-gradient(135deg,#ea580c,#c2410c)",padding:"11px 14px"}}>
+              <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>{a.title}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,.75)",marginTop:2}}>📅 {a.date} · {a.type==="booth"?"🏪 Booth":"🚗 Roadshow"}</div>
+            </div>
+            <div style={{padding:"12px 14px",display:"flex",flexDirection:"column",gap:7}}>
+              {a.targetNew>0&&<div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
+                  <span style={{color:"var(--t2)",fontWeight:600}}>📱 KHQR New</span>
+                  <span style={{fontWeight:700,color:a.pctK>=100?"#059669":a.pctK>=50?"#7c3aed":"#dc2626"}}>{a.pctK.toFixed(1)}% ({a.actualNew||0}/{a.targetNew})</span>
+                </div>
+                <div style={{height:7,background:"#f3f4f6",borderRadius:20,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${a.pctK}%`,background:a.pctK>=100?"#059669":"#7c3aed",borderRadius:20,transition:"width .5s"}}/>
+                </div>
+              </div>}
+              {a.targetCIF>0&&<div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
+                  <span style={{color:"var(--t2)",fontWeight:600}}>🪪 New CIF</span>
+                  <span style={{fontWeight:700,color:a.pctC>=100?"#059669":a.pctC>=50?"#059669":"#dc2626"}}>{a.pctC.toFixed(1)}% ({a.actualCIF||0}/{a.targetCIF})</span>
+                </div>
+                <div style={{height:7,background:"#f3f4f6",borderRadius:20,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${a.pctC}%`,background:"#059669",borderRadius:20,transition:"width .5s"}}/>
+                </div>
+              </div>}
+              {/* Approved members */}
+              {(a.requests||[]).filter(r=>r.status==="approved").length>0&&(
+                <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:2}}>
+                  {(a.requests||[]).filter(r=>r.status==="approved").map(r=>(
+                    <span key={r.user} style={{fontSize:10,fontWeight:600,padding:"2px 9px",background:"#f0fdf4",border:"1px solid #86efac",color:"#059669",borderRadius:20}}>✅ {r.user}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>}
+
+      {/* ── DELETE REQUEST TAB ── */}
+      {tab==="delete"&&<div style={{padding:"0 18px",display:"flex",flexDirection:"column",gap:12}}>
+        {canRequest&&<>
+          <div style={{background:"#fef2f2",border:"1.5px solid #fecaca",borderRadius:12,padding:"11px 14px",fontSize:11,color:"#991b1b"}}>
+            ⚠️ Report Delete Request ត្រូវផ្ញើទៅ Admin ពិនិត្យ — Admin ជាអ្នក Approve ហើយ Delete
+          </div>
+          <Card icon="🗑️" title="ស្នើ Delete Reports" sub="DBMC → Admin Approval" accent="#dc2626">
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              <label style={{fontSize:11,fontWeight:600,color:"var(--t2)"}}>Delete Reports ចាស់ជាង (ខែ)</label>
+              <select className="nb" value={months} onChange={e=>setMonths(e.target.value)}>
+                <option value="3">3 ខែ</option>
+                <option value="6">6 ខែ</option>
+                <option value="12">12 ខែ (1 ឆ្នាំ)</option>
+              </select>
+            </div>
+            <div style={{background:"#fff8f0",border:"1px solid #fed7aa",borderRadius:10,padding:"9px 12px",fontSize:11,color:"#9a3412"}}>
+              📊 Reports ក្នុង {months} ខែចុងក្រោយ: <b>{rpts.filter(r=>{const d=new Date(r.ts);const c=new Date();c.setMonth(c.getMonth()-parseInt(months));return d<c;}).length}</b> records នឹងត្រូវ Delete
+            </div>
+            <div className="field"><label>មូលហេតុ / Reason</label><textarea className="nb" rows={3} placeholder="ហេតុអ្វីបានជា Delete..." value={reason} onChange={e=>setReason(e.target.value)}/></div>
+            <button className="btn btn-red" onClick={sendDeleteReq}>📤 ផ្ញើការស្នើ Delete ទៅ Admin</button>
+          </Card>
+          <div className="sec-title">📋 ការស្នើ Delete ពីមុន</div>
+          {delReqs.filter(r=>r.requestedBy===user.display).map(r=>(
+            <div key={r.fid} style={{background:"#fff",border:`1.5px solid ${r.status==="pending"?"#fde68a":r.status==="approved"?"#86efac":"#fecaca"}`,borderRadius:12,padding:"11px 14px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                <div style={{fontSize:12,fontWeight:700,color:"var(--t0)"}}>Delete &lt; {r.cutoffDate}</div>
+                <span style={{fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:20,background:r.status==="pending"?"#fffbeb":r.status==="approved"?"#f0fdf4":"#fef2f2",color:r.status==="pending"?"#d97706":r.status==="approved"?"#059669":"#dc2626",border:`1px solid ${r.status==="pending"?"#fde68a":r.status==="approved"?"#86efac":"#fecaca"}`}}>
+                  {r.status==="pending"?"⏳ Pending":r.status==="approved"?"✅ Approved":"❌ Rejected"}
+                </span>
+              </div>
+              <div style={{fontSize:11,color:"var(--t2)"}}>📋 {r.rptCount} records · {r.reason}</div>
+            </div>
+          ))}
+        </>}
+
+        {canDelete&&<>
+          <div className="sec-title">🔔 Delete Requests ពី DBMC</div>
+          {delReqs.filter(r=>r.status==="pending").length===0&&<div className="info-b">មិនទាន់មានការស្នើ Delete</div>}
+          {delReqs.filter(r=>r.status==="pending").map(r=>(
+            <div key={r.fid} style={{background:"#fff",border:"1.5px solid #fde68a",borderRadius:14,overflow:"hidden",boxShadow:"var(--sh)"}}>
+              <div style={{background:"linear-gradient(135deg,#d97706,#b45309)",padding:"11px 14px"}}>
+                <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>🗑️ Delete Request</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,.8)",marginTop:2}}>📤 {r.requestedBy} · {r.ts?.slice(0,10)}</div>
+              </div>
+              <div style={{padding:"12px 14px",display:"flex",flexDirection:"column",gap:8}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <div style={{background:"#fef2f2",borderRadius:10,padding:"8px 11px",border:"1px solid #fecaca"}}>
+                    <div style={{fontSize:18,fontWeight:900,color:"#dc2626"}}>{r.rptCount}</div>
+                    <div style={{fontSize:9,color:"#991b1b",fontWeight:600}}>Reports នឹង Delete</div>
+                  </div>
+                  <div style={{background:"#fff8f0",borderRadius:10,padding:"8px 11px",border:"1px solid #fed7aa"}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"#9a3412"}}>Before</div>
+                    <div style={{fontSize:11,color:"#9a3412"}}>{r.cutoffDate}</div>
+                  </div>
+                </div>
+                <div style={{fontSize:11,color:"var(--t2)",background:"var(--g2)",borderRadius:9,padding:"8px 11px"}}>💬 {r.reason}</div>
+                <div style={{display:"flex",gap:8}}>
+                  <button className="btn btn-red" style={{flex:1,padding:"10px"}} onClick={()=>approveDelete(r)}>✅ Approve & Delete</button>
+                  <button className="btn btn-out" style={{flex:1,padding:"10px"}} onClick={()=>rejectDelete(r)}>❌ Reject</button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {delReqs.filter(r=>r.status!=="pending").length>0&&<>
+            <div className="sec-title">📋 History</div>
+            {delReqs.filter(r=>r.status!=="pending").map(r=>(
+              <div key={r.fid} style={{background:"#fff",border:`1px solid ${r.status==="approved"?"#86efac":"#fecaca"}`,borderRadius:12,padding:"11px 14px"}}>
+                <div style={{display:"flex",justifyContent:"space-between"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"var(--t0)"}}>Delete &lt; {r.cutoffDate}</div>
+                  <span style={{fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:20,background:r.status==="approved"?"#f0fdf4":"#fef2f2",color:r.status==="approved"?"#059669":"#dc2626"}}>
+                    {r.status==="approved"?"✅ Done ("+r.deletedCount+" deleted)":"❌ Rejected"}
+                  </span>
+                </div>
+                <div style={{fontSize:11,color:"var(--t2)",marginTop:4}}>By: {r.requestedBy} · {r.reason}</div>
+              </div>
+            ))}
+          </>}
+        </>}
+      </div>}
+      <div style={{height:8}}/>
+    </div>
+  );
+}
+
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
 function ResetPW({users,onDone}){
   const [sel,ss]=useState(""); const [p,sp]=useState(""); const [p2,sp2]=useState(""); const [err,se]=useState("");
@@ -1929,6 +2235,328 @@ function LoanWeeklyView({user,isReadOnly=false}){
   );
 }
 
+
+// ─── MATERIALS PAGE ───────────────────────────────────────────────────────────
+function MaterialsPage({user}){
+  const [tab,st]=useState(()=>{
+    if(user.role==="dbmc"||user.role==="admin") return "stock";
+    if(user.role==="supervisor_csa") return "stock";
+    return "request";
+  });
+  const [stock,ss]=useState({});
+  const [reqs,sr]=useState([]);
+  const [loading,sl]=useState(true);
+  const [toast,stt]=useState("");
+  const today=new Date().toISOString().split("T")[0];
+
+  const canManageStock=["dbmc","admin"].includes(user.role);
+  const canRequest=["supervisor_csa","csa_officer"].includes(user.role);
+  const canViewStock=["dbmc","admin","bm","supervisor_csa"].includes(user.role);
+
+  const load=useCallback(async()=>{
+    sl(true);
+    const [s,r]=await Promise.all([getStock(),getMaterialRequests()]);
+    ss(s); sr(r); sl(false);
+  },[]);
+  useEffect(()=>{ load(); },[]);
+
+  // Today's requests
+  const todayReqs=reqs.filter(r=>r.date===today);
+  const morningReq=todayReqs.find(r=>r.session==="morning"&&r.user===user.display);
+  const eveningReq=todayReqs.find(r=>r.session==="evening"&&r.user===user.display);
+
+  // Calc today's usage = morning requested - evening returned
+  const calcUsage=()=>{
+    const usage={};
+    MATERIAL_ITEMS.forEach(m=>{
+      const morning=todayReqs.filter(r=>r.session==="morning");
+      const evening=todayReqs.filter(r=>r.session==="evening");
+      const outQty=morning.reduce((s,r)=>s+(parseInt(r.items?.[m.id])||0),0);
+      const retQty=evening.reduce((s,r)=>s+(parseInt(r.items?.[m.id])||0),0);
+      usage[m.id]={out:outQty,ret:retQty,used:outQty-retQty};
+    });
+    return usage;
+  };
+  const usage=calcUsage();
+
+  // Stock edit
+  const [stockEdit,setSE]=useState({});
+  const saveStockFn=async()=>{
+    const merged={...stock};
+    Object.entries(stockEdit).forEach(([k,v])=>{ merged[k]=(parseInt(merged[k])||0)+(parseInt(v)||0); });
+    await saveStock(merged); ss(merged); setSE({});
+    stt("Stock បានរក្សាទុក!");
+  };
+  const setStockDirect=async(id,val)=>{
+    const merged={...stock,[id]:parseInt(val)||0};
+    await saveStock(merged); ss(merged);
+  };
+
+  // Request form
+  const [reqItems,sri]=useState({});
+  const [session,sse]=useState("morning");
+  const submitReq=async()=>{
+    const hasItems=Object.values(reqItems).some(v=>parseInt(v)>0);
+    if(!hasItems){stt("err|សូមបញ្ចូលចំនួន Items!"); return;}
+
+    // For morning: deduct from stock; for evening: add back to stock
+    const newStock={...stock};
+    if(session==="morning"){
+      // Check stock
+      for(const [id,qty] of Object.entries(reqItems)){
+        const q=parseInt(qty)||0;
+        if(q>0 && (parseInt(newStock[id])||0)<q){
+          stt(`err|${MATERIAL_ITEMS.find(m=>m.id===id)?.label} ស្តុកមិនគ្រប់!`); return;
+        }
+        if(q>0) newStock[id]=(parseInt(newStock[id])||0)-q;
+      }
+    } else {
+      // Evening return — add back
+      for(const [id,qty] of Object.entries(reqItems)){
+        const q=parseInt(qty)||0;
+        if(q>0) newStock[id]=(parseInt(newStock[id])||0)+q;
+      }
+    }
+
+    const req={
+      user:user.display,
+      role:user.role,
+      date:today,
+      session,
+      items:reqItems,
+      ts:new Date().toISOString(),
+      note:session==="morning"?"ស្នើសុំ Materials":"ប្រគល់ Materials ដែលនៅសល់",
+    };
+    await saveStock(newStock);
+    await saveMaterialRequest(req);
+    await load();
+    sri({}); stt(session==="morning"?"ស្នើសុំបានផ្ញើ!":"ប្រគល់ Materials ដោយជោគជ័យ!");
+  };
+
+  if(loading) return <div className="loading-full"><div className="spinner"/></div>;
+
+  return(
+    <div className="sb">
+      {toast&&<Toast msg={toast.replace(/^err\|/,"")} type={toast.startsWith("err")?"err":"ok2"} onDone={()=>stt("")}/>}
+
+      {/* Tabs */}
+      <div className="scroll-tabs" style={{padding:"0 18px"}}>
+        {[
+          ...(canViewStock?[["stock","📦 Stock"]]:[]),
+          ...(canRequest?[["request","📋 ស្នើសុំ"],["evening","🌙 ប្រគល់"]]:[]),
+          ["history","📊 History"],
+          ...(canManageStock?[["manage","⚙️ Manage"]]:[]),
+        ].map(([k,l])=>(
+          <button key={k} className={`stab ${tab===k?"on":""}`} onClick={()=>st(k)}>{l}</button>
+        ))}
+      </div>
+
+      {/* ── STOCK TAB ── */}
+      {tab==="stock"&&(
+        <div style={{padding:"0 18px",display:"flex",flexDirection:"column",gap:10}}>
+          {/* Today summary */}
+          <div style={{background:"linear-gradient(135deg,#7c3aed,#6d28d9)",borderRadius:16,padding:"14px 16px",color:"#fff",position:"relative",overflow:"hidden"}}>
+            <div style={{fontSize:10,opacity:.75,textTransform:"uppercase",letterSpacing:".06em",marginBottom:4}}>📦 Stock ថ្ងៃនេះ · {today}</div>
+            <div style={{fontSize:17,fontWeight:800,letterSpacing:"-.01em",marginBottom:6}}>Materials Booth 541-TRD</div>
+            <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+              <div style={{background:"rgba(255,255,255,.15)",borderRadius:10,padding:"6px 12px",textAlign:"center"}}>
+                <div style={{fontSize:18,fontWeight:800}}>{todayReqs.filter(r=>r.session==="morning").length}</div>
+                <div style={{fontSize:9,opacity:.8}}>ស្នើសុំ</div>
+              </div>
+              <div style={{background:"rgba(255,255,255,.15)",borderRadius:10,padding:"6px 12px",textAlign:"center"}}>
+                <div style={{fontSize:18,fontWeight:800}}>{todayReqs.filter(r=>r.session==="evening").length}</div>
+                <div style={{fontSize:9,opacity:.8}}>ប្រគល់</div>
+              </div>
+            </div>
+            <div style={{position:"absolute",right:16,top:"50%",transform:"translateY(-50%)",fontSize:48,opacity:.15}}>📦</div>
+          </div>
+
+          {/* Stock grid */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            {MATERIAL_ITEMS.map(m=>{
+              const qty=parseInt(stock[m.id])||0;
+              const used=usage[m.id]?.used||0;
+              const pct=qty+used>0?(used/(qty+used)*100):0;
+              const col=qty===0?"#dc2626":qty<=5?"#d97706":"#059669";
+              return(
+                <div key={m.id} style={{background:"#fff",border:`1.5px solid ${qty===0?"#fecaca":qty<=5?"#fde68a":"#e5e7eb"}`,borderRadius:14,padding:"12px 13px",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                    <div style={{fontSize:22}}>{m.icon}</div>
+                    <div style={{fontSize:16,fontWeight:900,color:col}}>{qty}</div>
+                  </div>
+                  <div style={{fontSize:11,fontWeight:700,color:"var(--t0)",marginBottom:2}}>{m.label}</div>
+                  <div style={{fontSize:9,color:"var(--t2)",marginBottom:6}}>{m.unit} · ប្រើ: {used}</div>
+                  {/* Usage bar */}
+                  <div style={{height:4,background:"#f3f4f6",borderRadius:20,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${Math.min(pct,100)}%`,background:qty===0?"#dc2626":qty<=5?"#f59e0b":"#7c3aed",borderRadius:20,transition:"width .5s"}}/>
+                  </div>
+                  {qty===0&&<div style={{fontSize:9,color:"#dc2626",fontWeight:700,marginTop:3}}>⚠️ អស់ស្តុក!</div>}
+                  {qty>0&&qty<=5&&<div style={{fontSize:9,color:"#d97706",fontWeight:700,marginTop:3}}>⚠️ ជិតអស់!</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── REQUEST TAB (Morning) ── */}
+      {(tab==="request"||tab==="evening")&&canRequest&&(
+        <div style={{padding:"0 18px",display:"flex",flexDirection:"column",gap:12}}>
+          {/* Session indicator */}
+          <div style={{background:tab==="request"?"#eff6ff":"#fef9c3",border:`1.5px solid ${tab==="request"?"#bfdbfe":"#fde68a"}`,borderRadius:12,padding:"11px 14px",display:"flex",gap:10,alignItems:"center"}}>
+            <div style={{fontSize:24}}>{tab==="request"?"🌅":"🌙"}</div>
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:tab==="request"?"#1d4ed8":"#92400e"}}>
+                {tab==="request"?"ព្រឹក — ស្នើសុំ Materials":"ល្ងាច — ប្រគល់ Materials ដែលនៅសល់"}
+              </div>
+              <div style={{fontSize:10,color:"var(--t2)",marginTop:2}}>
+                {tab==="request"
+                  ? morningReq?"✅ បានស្នើហើយ":"អ្នកអាចស្នើ Materials ១ ដង/ថ្ងៃ"
+                  : eveningReq?"✅ បានប្រគល់ហើយ":"ប្រគល់ materials ដែលមិនទាន់ប្រើ"}
+              </div>
+            </div>
+          </div>
+
+          {(tab==="request"&&morningReq)||(tab==="evening"&&eveningReq) ? (
+            <div style={{background:"#f0fdf4",border:"1.5px solid #86efac",borderRadius:12,padding:"12px 14px"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#065f46",marginBottom:8}}>
+                ✅ {tab==="request"?"ការស្នើ":"ការប្រគល់"} ថ្ងៃនេះ
+              </div>
+              {Object.entries((tab==="request"?morningReq:eveningReq)?.items||{}).filter(([,v])=>parseInt(v)>0).map(([id,qty])=>{
+                const m=MATERIAL_ITEMS.find(x=>x.id===id);
+                return m?(
+                  <div key={id} style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#065f46",marginBottom:3}}>
+                    <span>{m.icon} {m.label}</span><b>{qty} {m.unit}</b>
+                  </div>
+                ):null;
+              })}
+            </div>
+          ) : (
+            <>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {MATERIAL_ITEMS.map(m=>{
+                  const stockQty=parseInt(stock[m.id])||0;
+                  return(
+                    <div key={m.id} style={{display:"flex",alignItems:"center",gap:10,background:"#fff",border:"1px solid var(--bd)",borderRadius:12,padding:"10px 13px",boxShadow:"0 1px 3px rgba(0,0,0,.05)"}}>
+                      <div style={{fontSize:20,flexShrink:0}}>{m.icon}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:700,color:"var(--t0)"}}>{m.label}</div>
+                        <div style={{fontSize:10,color:"var(--t2)"}}>ស្តុក: {tab==="request"?stockQty:usage[m.id]?.out||0} {m.unit}</div>
+                      </div>
+                      <input
+                        type="number" min="0"
+                        max={tab==="request"?stockQty:(usage[m.id]?.out||999)}
+                        placeholder="0"
+                        value={reqItems[m.id]||""}
+                        onChange={e=>sri(p=>({...p,[m.id]:e.target.value}))}
+                        style={{width:64,padding:"7px 8px",border:`1.5px solid ${parseInt(reqItems[m.id])>0?"#7c3aed":"var(--bd)"}`,borderRadius:10,fontSize:13,fontWeight:700,textAlign:"center",outline:"none",color:"var(--t0)",background:parseInt(reqItems[m.id])>0?"#f5f3ff":"#fff"}}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <button className="btn btn-p" style={{margin:"4px 0 8px"}}
+                onClick={()=>{ const s=tab==="request"?"morning":"evening"; sse(s); submitReq(); }}>
+                {tab==="request"?"📋 ស្នើសុំ Materials":"🌙 ប្រគល់ Materials"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── HISTORY TAB ── */}
+      {tab==="history"&&(
+        <div style={{padding:"0 18px",display:"flex",flexDirection:"column",gap:10}}>
+          {/* Today summary by item */}
+          <div style={{background:"#fff",border:"1px solid var(--bd)",borderRadius:16,overflow:"hidden",boxShadow:"var(--sh)"}}>
+            <div style={{background:"linear-gradient(135deg,#059669,#047857)",padding:"12px 15px"}}>
+              <div style={{fontSize:11,color:"rgba(255,255,255,.8)",marginBottom:2}}>📊 សង្ខេបថ្ងៃនេះ · {today}</div>
+              <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>Stock Usage Summary</div>
+            </div>
+            <div style={{padding:"12px 15px",display:"flex",flexDirection:"column",gap:6}}>
+              {MATERIAL_ITEMS.filter(m=>usage[m.id]?.out>0||usage[m.id]?.ret>0).map(m=>(
+                <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"var(--g2)",borderRadius:10}}>
+                  <span style={{fontSize:16,flexShrink:0}}>{m.icon}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"var(--t0)"}}>{m.label}</div>
+                    <div style={{height:4,background:"#e5e7eb",borderRadius:20,overflow:"hidden",marginTop:3}}>
+                      <div style={{height:"100%",width:`${usage[m.id]?.out>0?(usage[m.id].used/usage[m.id].out*100):0}%`,background:"#7c3aed",borderRadius:20}}/>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#dc2626"}}>-{usage[m.id]?.used||0}</div>
+                    <div style={{fontSize:9,color:"var(--t2)"}}>នៅ: {parseInt(stock[m.id])||0}</div>
+                  </div>
+                </div>
+              ))}
+              {MATERIAL_ITEMS.every(m=>!usage[m.id]?.out)&&<div style={{fontSize:12,color:"var(--t2)",textAlign:"center",padding:"8px 0"}}>មិនទាន់មានការស្នើសុំថ្ងៃនេះ</div>}
+            </div>
+          </div>
+
+          {/* Request history */}
+          {reqs.slice(0,20).map((r,i)=>(
+            <div key={r.fid||i} style={{background:"#fff",border:`1px solid ${r.session==="morning"?"#bfdbfe":"#fde68a"}`,borderRadius:12,padding:"11px 14px",boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <span style={{fontSize:14}}>{r.session==="morning"?"🌅":"🌙"}</span>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:"var(--t0)"}}>{r.user}</div>
+                    <div style={{fontSize:10,color:"var(--t2)"}}>{r.date} · {r.session==="morning"?"ស្នើ":"ប្រគល់"}</div>
+                  </div>
+                </div>
+                <span style={{fontSize:10,fontWeight:700,padding:"2px 9px",borderRadius:20,background:r.session==="morning"?"#eff6ff":"#fffbeb",color:r.session==="morning"?"#2563eb":"#d97706",border:`1px solid ${r.session==="morning"?"#bfdbfe":"#fde68a"}`}}>
+                  {r.session==="morning"?"🌅 ព្រឹក":"🌙 ល្ងាច"}
+                </span>
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                {Object.entries(r.items||{}).filter(([,v])=>parseInt(v)>0).map(([id,qty])=>{
+                  const m=MATERIAL_ITEMS.find(x=>x.id===id);
+                  return m?(
+                    <span key={id} style={{fontSize:10,fontWeight:600,padding:"2px 9px",background:"#f5f3ff",border:"1px solid #c4b5fd",color:"#6d28d9",borderRadius:20}}>
+                      {m.icon} {m.label}: {qty}
+                    </span>
+                  ):null;
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── MANAGE TAB (DBMC/Admin) ── */}
+      {tab==="manage"&&canManageStock&&(
+        <div style={{padding:"0 18px",display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{background:"#fffbeb",border:"1.5px solid #fde68a",borderRadius:12,padding:"10px 13px",fontSize:11,color:"#92400e"}}>
+            ⚙️ DBMC Set Stock — បញ្ចូលចំនួន Stock ថ្មី ឬ Add ទៅ Stock បច្ចុប្បន្ន
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {MATERIAL_ITEMS.map(m=>(
+              <div key={m.id} style={{display:"flex",alignItems:"center",gap:10,background:"#fff",border:"1px solid var(--bd)",borderRadius:12,padding:"10px 13px"}}>
+                <div style={{fontSize:20,flexShrink:0}}>{m.icon}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"var(--t0)"}}>{m.label}</div>
+                  <div style={{fontSize:10,color:"var(--t2)"}}>Stock: <b style={{color:"var(--p)"}}>{parseInt(stock[m.id])||0}</b> {m.unit}</div>
+                </div>
+                <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                  <button style={{width:28,height:28,borderRadius:8,border:"1.5px solid var(--bd)",background:"#fff",fontSize:14,cursor:"pointer",fontWeight:700,color:"#dc2626",display:"flex",alignItems:"center",justifyContent:"center"}}
+                    onClick={()=>setStockDirect(m.id,Math.max(0,(parseInt(stock[m.id])||0)-1))}>−</button>
+                  <input type="number" min="0" value={parseInt(stock[m.id])||0}
+                    onChange={e=>setStockDirect(m.id,e.target.value)}
+                    style={{width:58,padding:"6px 4px",border:"1.5px solid #c4b5fd",borderRadius:10,fontSize:13,fontWeight:700,textAlign:"center",outline:"none",color:"#7c3aed",background:"#f5f3ff"}}/>
+                  <button style={{width:28,height:28,borderRadius:8,border:"1.5px solid var(--bd)",background:"#fff",fontSize:14,cursor:"pointer",fontWeight:700,color:"#059669",display:"flex",alignItems:"center",justifyContent:"center"}}
+                    onClick={()=>setStockDirect(m.id,(parseInt(stock[m.id])||0)+1)}>+</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="btn btn-green" onClick={async()=>{await saveStock(stock);stt("Stock បានរក្សាទុក!");}}>💾 Save All Stock</button>
+        </div>
+      )}
+      <div style={{height:8}}/>
+    </div>
+  );
+}
+
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App(){
   const [user,su]=useState(null);
@@ -1957,9 +2585,11 @@ export default function App(){
       case "analytics":  return <AnalyticsPage targets={targets} user={user} onUpdateTargets={setTargets}/>;
       case "staff":      return <StaffPage/>;
       case "activities": return <ActivitiesPage user={user}/>;
-      case "admin":      return <AdminPage onBgChange={()=>{}}/>;
+      case "admin":      return <AdminPage onBgChange={v=>{sbg(v);}} onTargetsChange={setTargets}/>;
       case "team":       return <TeamReports user={user}/>;
       case "report":     return <ReportPage user={user}/>;
+      case "materials":  return <MaterialsPage user={user}/>;
+      case "summary":   return <ReportSummaryPage user={user}/>;
       default: return <div style={{padding:18}}><div className="info-b">Page មិនស្គាល់</div></div>;
     }
   };
