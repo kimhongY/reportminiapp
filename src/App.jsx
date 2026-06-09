@@ -50,8 +50,8 @@ const clearSession = () => { try { localStorage.removeItem(SK); } catch(e){} };
 const DEFAULT_TARGETS = {
   khqr:    { label:"KHQR Onboard",      icon:"📱", color:"#7c3aed", unit:"",  plan:200,  actual:0 },
   cif:     { label:"New CIF",           icon:"🪪", color:"#059669", unit:"",  plan:150,  actual:0 },
-  deposit: { label:"Deposit",           icon:"🏦", color:"#2563eb", unit:"M", plan:2000, actual:0 },
-  loan:    { label:"Loan Disbursement", icon:"💳", color:"#db2777", unit:"M", plan:500,  actual:0 },
+  deposit: { label:"Deposit",           icon:"🏦", color:"#2563eb", unit:"USD", plan:2000, actual:0 },
+  loan:    { label:"Loan Disbursement", icon:"💳", color:"#db2777", unit:"USD", plan:500,  actual:0 },
 };
 
 const ROLE = {
@@ -513,13 +513,13 @@ function TargetCard({cat,data}){
         <div className="tgt-ic" style={{background:`color-mix(in srgb,${data.color} 12%,#fff)`}}>{data.icon}</div>
         <div className="tgt-info">
           <div className="tgt-name">{data.label}</div>
-          <div className="tgt-nums">Plan: <b>{data.plan.toLocaleString()}{data.unit}</b> · Actual: <b style={{color:col}}>{data.actual.toLocaleString()}{data.unit}</b></div>
+          <div className="tgt-nums">Plan: <b>{data.unit==="USD"?"$":""}{data.plan.toLocaleString()}{data.unit!=="USD"?" "+data.unit:""}</b> · Actual: <b style={{color:col}}>{data.unit==="USD"?"$":""}{(parseFloat(data.actual)||0).toLocaleString()}{data.unit!=="USD"?" "+data.unit:""}</b></div>
         </div>
         <div className="tgt-pct" style={{color:col}}>{pct.toFixed(0)}%</div>
       </div>
       <div className="bar-bg"><div className="bar-fill" style={{width:`${pct}%`,background:col}}/></div>
       <div className="tgt-bot">
-        <span>Gap: <b style={{color:gap<=0?"#059669":"#dc2626"}}>{gap<=0?"✅ Achieved!":"-"+gap.toLocaleString()+data.unit}</b></span>
+        <span>Gap: <b style={{color:gap<=0?"#059669":"#dc2626"}}>{gap<=0?"✅ Achieved!":"-"+(data.unit==="USD"?"$":"")+Math.abs(gap).toLocaleString()+(data.unit!=="USD"?" "+data.unit:"")}</b></span>
         <span style={{color:col}}>{pct>=100?"🏆":pct>=80?"🔥":pct>=50?"📈":"⚠️"} {pct>=100?"Target Reached!":pct>=80?"Almost!":pct>=50?"On track":"Needs push"}</span>
       </div>
     </div>
@@ -758,7 +758,7 @@ function HomePage({user,targets}){
               <div>
                 <div className="ins-title">{d.label} — {pct.toFixed(1)}%</div>
                 <div className="ins-body">{pct>=100?"🏆 Target Reached! ":pct>=80?"ជិតដល់! ":"ត្រូវការ "}
-                  {pct<100&&<><b style={{color:"var(--p)"}}>{(d.plan-d.actual).toLocaleString()}{d.unit}</b> {pct>=80?"more!":pct>=50?"to go":"— push harder!"}</>}
+                  {pct<100&&<><b style={{color:"var(--p)"}}>{d.unit==="USD"?"$":""}{Math.abs(d.plan-d.actual).toLocaleString()}{d.unit!=="USD"?" "+d.unit:""}</b> {pct>=80?"more!":pct>=50?"to go":"— push harder!"}</>}
                 </div>
               </div>
             </div>
@@ -1073,7 +1073,12 @@ function AnalyticsPage({targets,user,onUpdateTargets}){
   const mk=yr+"-"+String(mon+1).padStart(2,"0");
 
   // Real KPI data from Firebase
-  const kpiData=kpis.filter(k=>k.month===mk).map(k=>({name:k.userName||"",v:parseInt(k.score)||0,uid:k.uid}));
+  const kpiData=kpis.filter(k=>k.month===mk).map(k=>({
+    name:k.userName||"",
+    v:parseInt(k.score)||Math.round([parseFloat(k.deposit)||0,parseFloat(k.cif)||0,parseFloat(k.khqr)||0].filter(v=>v>0).reduce((a,b,_,arr)=>a+b/arr.length,0)),
+    deposit:parseFloat(k.deposit)||0, cif:parseFloat(k.cif)||0, khqr:parseFloat(k.khqr)||0,
+    uid:k.uid,
+  }));
 
   // Monthly trend from real reports (last 6 months)
   const monthly=Array.from({length:6},(_,i)=>{
@@ -1091,7 +1096,8 @@ function AnalyticsPage({targets,user,onUpdateTargets}){
       if(r.type==="CSA"||r.type==="CSA_Officer"){ cif+=parseInt(r.data?.newCif||0); deposit+=parseFloat(r.data?.deposit||0); }
       if(r.type==="Loan"||r.type==="Loan_Officer"){ loan+=parseFloat(r.data?.mK||0)+parseFloat(r.data?.tK||0)+parseFloat(r.data?.wK||0)+parseFloat(r.data?.thK||0)+parseFloat(r.data?.fK||0); }
     });
-    return{khqr,cif,deposit:deposit/1000000,loan:loan/1000000};
+    // deposit and loan stored as raw M values (staff enter in M), no division needed
+    return{khqr, cif, deposit:parseFloat(deposit.toFixed(2)), loan:parseFloat(loan.toFixed(2))};
   };
   const actuals=calcActual();
 
@@ -1101,7 +1107,7 @@ function AnalyticsPage({targets,user,onUpdateTargets}){
     targetsWithActual[k]={...d,actual:actuals[k]??d.actual};
   });
 
-  const tgtChart=Object.entries(targetsWithActual).map(([k,d])=>({name:d.label.split(" ")[0],Plan:d.plan,Actual:parseFloat(d.actual)||0,color:d.color}));
+  const tgtChart=Object.entries(targetsWithActual).map(([k,d])=>({name:d.label.split(" ")[0]+(d.unit==="USD"?" ($)":""),Plan:d.plan,Actual:parseFloat(d.actual)||0,color:d.color}));
 
   // Staff performance: weekly/monthly/quarterly
   const perfByPeriod=(period)=>{
@@ -1129,7 +1135,32 @@ function AnalyticsPage({targets,user,onUpdateTargets}){
       {tab==="kpi"&&<>
         <Card icon="📊" title="KPI Overview" sub={`ខែ ${MONTHS[mon]}`} accent="#7c3aed">
           <div style={{display:"flex",flexWrap:"wrap",gap:14,justifyContent:"center",padding:"4px 0"}}>
-            {kpiData.map(k=><KRing key={k.name} pct={k.v} name={k.name.split(" ").slice(0,2).join(" ")} size={86}/>)}
+            {kpiData.length===0&&<div className="info-b">DBMC មិនទាន់បំពេញ KPI</div>}
+          {kpiData.map(k=>(
+            <div key={k.name} style={{background:"var(--g2)",borderRadius:14,padding:"11px 13px",border:"1px solid var(--bd2)"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"var(--t0)",marginBottom:8}}>{k.name}</div>
+              <div style={{display:"flex",gap:8,justifyContent:"space-around"}}>
+                {[{lbl:"Deposit",val:k.deposit,color:"#2563eb"},{lbl:"CIF",val:k.cif,color:"#059669"},{lbl:"KHQR",val:k.khqr,color:"#7c3aed"}].map(m=>(
+                  <div key={m.lbl} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                    <div style={{position:"relative",width:62,height:62}}>
+                      <svg width="62" height="62" viewBox="0 0 62 62">
+                        <circle cx="31" cy="31" r="25" fill="none" stroke="#f3f4f6" strokeWidth="6"/>
+                        <circle cx="31" cy="31" r="25" fill="none" stroke={m.color} strokeWidth="6"
+                          strokeDasharray={2*Math.PI*25}
+                          strokeDashoffset={2*Math.PI*25*(1-Math.min(m.val||0,100)/100)}
+                          strokeLinecap="round" transform="rotate(-90 31 31)"
+                          style={{transition:"stroke-dashoffset .6s"}}/>
+                      </svg>
+                      <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:(m.val||0)>0?m.color:"#9ca3af"}}>
+                        {(m.val||0)>0?(m.val||0)+"%":"—"}
+                      </div>
+                    </div>
+                    <div style={{fontSize:9,fontWeight:700,color:"var(--t2)",textTransform:"uppercase",letterSpacing:".05em"}}>{m.lbl}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
           </div>
         </Card>
         <div style={{height:12}}/>
@@ -1170,7 +1201,7 @@ function AnalyticsPage({targets,user,onUpdateTargets}){
                   <span style={{fontSize:12,fontWeight:700,color:"var(--t0)"}}>{d.label}</span>
                   <span style={{marginLeft:"auto",fontSize:11,color:"var(--t2)"}}>Actual: <b style={{color:"var(--p)"}}>{(actuals[k]||0).toLocaleString()}{d.unit}</b></span>
                 </div>
-                <F label={`Plan Target (${d.unit||"unit"})`} ph="គោលដៅ" val={String(d.plan)} set={v=>setDraft(p=>({...p,[k]:{...p[k],plan:parseFloat(v)||0}}))} nb/>
+                <F label={`Plan Target (${d.unit==="USD"?"$USD":d.unit||"unit"})`} ph="គោលដៅ" val={String(d.plan)} set={v=>setDraft(p=>({...p,[k]:{...p[k],plan:parseFloat(v)||0}}))} nb/>
               </div>
             ))}
           </Card>
@@ -1358,31 +1389,68 @@ function ActivitiesPage({user}){
 // ─── STAFF PAGE ───────────────────────────────────────────────────────────────
 // ─── KPI EDITOR COMPONENT ────────────────────────────────────────────────────
 function KPIEditor({staff,kpi,monthKey,onSave}){
-  const [sc,setSc]=useState(String(kpi.score||""));
-  const [nt,setNt]=useState(kpi.notes||"");
+  const [deposit,setDeposit]=useState(String(kpi.deposit||""));
+  const [cif,setCif]=useState(String(kpi.cif||""));
+  const [khqr,setKhqr]=useState(String(kpi.khqr||""));
+  const [notes,setNotes]=useState(kpi.notes||"");
   const [open,so]=useState(false);
-  const col=parseInt(sc)>=90?"#059669":parseInt(sc)>=70?"#7c3aed":parseInt(sc)>=50?"#d97706":"#dc2626";
-  const lbl=parseInt(sc)>=90?"🏆 ល្អប្រសើរ":parseInt(sc)>=70?"✅ ល្អ":parseInt(sc)>=50?"⚠️ មធ្យម":"❌ ត្រូវកែ";
+
+  // Avg of 3 metrics as overall KPI
+  const vals=[parseFloat(deposit)||0, parseFloat(cif)||0, parseFloat(khqr)||0].filter(v=>v>0);
+  const avg=vals.length>0?(vals.reduce((a,b)=>a+b,0)/vals.length):0;
+  const col=avg>=90?"#059669":avg>=70?"#7c3aed":avg>=50?"#d97706":avg>0?"#dc2626":"#9ca3af";
+
+  const metrics=[
+    {key:"deposit",icon:"🏦",label:"KPI Deposit (%)",val:deposit,set:setDeposit,color:"#2563eb"},
+    {key:"cif",    icon:"🪪",label:"KPI New CIF (%)", val:cif,    set:setCif,    color:"#059669"},
+    {key:"khqr",   icon:"📱",label:"KPI KHQR (%)",    val:khqr,  set:setKhqr,   color:"#7c3aed"},
+  ];
+
   return(
     <div className="card">
       <div className="card-head" onClick={()=>so(!open)} style={{cursor:"pointer"}}>
         <div className="card-icon" style={{background:`color-mix(in srgb,${ROLE[staff.role]?.color||"#7c3aed"} 14%,#f5f3ff)`}}>{ROLE[staff.role]?.icon||"👤"}</div>
         <div style={{flex:1}}><div className="card-title">{staff.display}</div><div className="card-sub">{ROLE[staff.role]?.label}</div></div>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{fontSize:16,fontWeight:900,color:col}}>{sc||"—"}%</div>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          {/* 3 mini bars */}
+          <div style={{display:"flex",flexDirection:"column",gap:3,minWidth:60}}>
+            {metrics.map(m=>(
+              <div key={m.key} style={{display:"flex",alignItems:"center",gap:4}}>
+                <div style={{width:36,height:4,background:"#f3f4f6",borderRadius:20,overflow:"hidden",flex:1}}>
+                  <div style={{height:"100%",width:`${Math.min(parseFloat(m.val)||0,100)}%`,background:m.color,borderRadius:20}}/>
+                </div>
+                <span style={{fontSize:9,fontWeight:700,color:m.color,minWidth:24,textAlign:"right"}}>{parseFloat(m.val)||0}%</span>
+              </div>
+            ))}
+          </div>
           <div style={{fontSize:11,color:"var(--t3)"}}>{open?"▲":"▼"}</div>
         </div>
       </div>
       {open&&<div className="card-body">
-        <div className="r2">
-          <F label="KPI Score (0-100)" ph="0-100" val={sc} set={setSc} nb/>
-          <div style={{display:"flex",flexDirection:"column",gap:5}}>
-            <label style={{fontSize:11,fontWeight:600,color:"var(--t1)"}}>Level</label>
-            <div style={{padding:"11px 13px",background:"var(--g2)",borderRadius:12,border:"1.5px solid var(--bd)",fontSize:12,fontWeight:700,color:col}}>{lbl}</div>
+        {metrics.map(m=>(
+          <div key={m.key}>
+            <div className="field">
+              <label style={{display:"flex",alignItems:"center",gap:5}}>
+                <span>{m.icon}</span>{m.label}
+              </label>
+              <div style={{position:"relative"}}>
+                <input className="nb" type="number" min="0" max="100" placeholder="0–100"
+                  value={m.val} onChange={e=>m.set(e.target.value)}
+                  style={{paddingRight:36}}/>
+                <span style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",fontSize:13,fontWeight:700,color:m.color}}>%</span>
+              </div>
+            </div>
+            {/* Progress bar preview */}
+            <div style={{height:5,background:"#f3f4f6",borderRadius:20,overflow:"hidden",marginTop:-4,marginBottom:4}}>
+              <div style={{height:"100%",width:`${Math.min(parseFloat(m.val)||0,100)}%`,background:m.color,borderRadius:20,transition:"width .4s"}}/>
+            </div>
           </div>
+        ))}
+        <div className="field">
+          <label>Notes / មតិយោបល់</label>
+          <textarea className="nb" rows={2} placeholder="មតិ..." value={notes} onChange={e=>setNotes(e.target.value)}/>
         </div>
-        <div className="field"><label>Notes / ការវាយតម្លៃ</label><textarea className="nb" rows={2} placeholder="ការវាយតម្លៃ..." value={nt} onChange={e=>setNt(e.target.value)}/></div>
-        <button className="btn btn-p btn-sm" style={{width:"auto",alignSelf:"flex-end"}} onClick={()=>onSave(sc,nt)}>💾 Save KPI</button>
+        <button className="btn btn-p btn-sm" style={{width:"auto",alignSelf:"flex-end"}} onClick={()=>onSave({deposit,cif,khqr,notes})}>💾 Save KPI</button>
       </div>}
     </div>
   );
@@ -1453,14 +1521,48 @@ function StaffPage(){
 
       {tab==="kpi"&&<>
         <Card icon="🏆" title="KPI Score" sub={`ខែ ${MONTHS[mon]}`} accent="#f59e0b">
-          <div style={{display:"flex",flexWrap:"wrap",gap:14,justifyContent:"center",padding:"4px 0"}}>
-            {staff.map(s=>{const k=getKPI(s.id); return <KRing key={s.id} pct={parseInt(k.score)||0} name={s.display.split(" ").slice(0,2).join(" ")} size={84}/>;})}
-          </div>
+          {staff.length===0&&<div className="info-b">មិនទាន់មានទិន្នន័យ</div>}
+          {staff.map(s=>{
+            const k=getKPI(s.id);
+            const metrics=[
+              {lbl:"Deposit",val:parseFloat(k.deposit)||0,color:"#2563eb"},
+              {lbl:"CIF",    val:parseFloat(k.cif)||0,    color:"#059669"},
+              {lbl:"KHQR",   val:parseFloat(k.khqr)||0,   color:"#7c3aed"},
+            ];
+            return(
+              <div key={s.id} style={{background:"var(--g2)",borderRadius:14,padding:"11px 13px",border:"1px solid var(--bd2)"}}>
+                <div style={{fontSize:12,fontWeight:700,color:"var(--t0)",marginBottom:8}}>{s.display}</div>
+                <div style={{display:"flex",gap:8,justifyContent:"space-around"}}>
+                  {metrics.map(m=>(
+                    <div key={m.lbl} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                      <div style={{position:"relative",width:62,height:62}}>
+                        <svg width="62" height="62" viewBox="0 0 62 62">
+                          <circle cx="31" cy="31" r="25" fill="none" stroke="#f3f4f6" strokeWidth="6"/>
+                          <circle cx="31" cy="31" r="25" fill="none" stroke={m.color} strokeWidth="6"
+                            strokeDasharray={2*Math.PI*25}
+                            strokeDashoffset={2*Math.PI*25*(1-Math.min(m.val,100)/100)}
+                            strokeLinecap="round" transform="rotate(-90 31 31)"
+                            style={{transition:"stroke-dashoffset .6s"}}/>
+                        </svg>
+                        <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:m.val>0?m.color:"#9ca3af"}}>
+                          {m.val>0?m.val+"%":"—"}
+                        </div>
+                      </div>
+                      <div style={{fontSize:9,fontWeight:700,color:"var(--t2)",textTransform:"uppercase",letterSpacing:".05em"}}>{m.lbl}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </Card>
         <div style={{height:12}}/>
         {staff.map(s=>(
-          <KPIEditor key={s.id} staff={s} kpi={getKPI(s.id)} monthKey={mk} onSave={async(sc,nt)=>{
-            await saveKPI({id:s.id+"_"+mk,uid:s.id,userName:s.display,score:sc,notes:nt,month:mk});
+          <KPIEditor key={s.id} staff={s} kpi={getKPI(s.id)} monthKey={mk} onSave={async(data)=>{
+            await saveKPI({id:s.id+"_"+mk,uid:s.id,userName:s.display,
+              deposit:data.deposit||0, cif:data.cif||0, khqr:data.khqr||0,
+              score:String(Math.round(([parseFloat(data.deposit)||0,parseFloat(data.cif)||0,parseFloat(data.khqr)||0].filter(v=>v>0).reduce((a,b)=>a+b,0)/([parseFloat(data.deposit)||0,parseFloat(data.cif)||0,parseFloat(data.khqr)||0].filter(v=>v>0).length||1))),
+              notes:data.notes||"", month:mk});
             await load(); stt("KPI បានរក្សាទុក!");
           }}/>
         ))}
@@ -1669,11 +1771,11 @@ function ReportSummaryPage({user}){
       metrics:[
         {lbl:"New CIF",  val:monRpts.filter(r=>r.type==="CSA"||r.type==="CSA_Officer").reduce((s,r)=>s+(parseInt(r.data?.newCif)||0),0), unit:""},
         {lbl:"KHQR",     val:monRpts.filter(r=>r.type==="CSA"||r.type==="CSA_Officer").reduce((s,r)=>s+(parseInt(r.data?.newKhqr)||0),0), unit:""},
-        {lbl:"Deposit",  val:monRpts.filter(r=>r.type==="CSA"||r.type==="CSA_Officer").reduce((s,r)=>s+(parseFloat(r.data?.deposit)||0),0)/1e6, unit:"M"},
+        {lbl:"Deposit",  val:parseFloat((monRpts.filter(r=>r.type==="CSA"||r.type==="CSA_Officer").reduce((s,r)=>s+(parseFloat(r.data?.deposit)||0),0)).toFixed(2)), unit:"USD"},
       ]},
     { team:"Loan",      icon:"💳", color:"#7c3aed", types:["Loan","Loan_Officer"],
       metrics:[
-        {lbl:"Disbursement",val:monRpts.filter(r=>r.type==="Loan"||r.type==="Loan_Officer").reduce((s,r)=>s+(["mK","tK","wK","thK","fK"].reduce((ss,k)=>ss+(parseFloat(r.data?.[k])||0),0)),0)/1e6, unit:"M KHR"},
+        {lbl:"Disbursement",val:monRpts.filter(r=>r.type==="Loan"||r.type==="Loan_Officer").reduce((s,r)=>s+(["mK","tK","wK","thK","fK"].reduce((ss,k)=>ss+(parseFloat(r.data?.[k])||0),0)),0)/1e6, unit:"USD"},
       ]},
     { team:"KHQR",      icon:"📱", color:"#0891b2", types:["MA_KHQR","MS_KHQR"],
       metrics:[
